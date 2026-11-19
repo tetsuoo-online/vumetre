@@ -297,8 +297,10 @@ async function loadLibrary(ask) {
 function syncClear() { $('bClear').hidden = !(tracks.length || lib); }
 async function clearLibrary() {
   loadSeq++;
-  player.pause(); player.removeAttribute('src'); player.load();
-  if (curUrl) { URL.revokeObjectURL(curUrl); curUrl = null; }
+  // On ne réinitialise pas l'élément audio (src vide + load()) : sur Android cela peut bloquer les lectures suivantes
+  player.pause();
+  try { player.currentTime = 0; } catch {}
+  if ('mediaSession' in navigator) navigator.mediaSession.metadata = null;
   tracks = []; idx = -1; lib = null;
   try { await DB.set('lib', null); } catch (e) { console.warn(e); }
   if (!liveSrc) mode = 'demo';
@@ -383,20 +385,26 @@ async function play(i) {
   await initAudio();
   idx = (i + tracks.length) % tracks.length;
   const t = tracks[idx];
+  let stage = 'fichier';
   try {
     const f = await t.get();
     stopLive(); outGain.gain.value = 1; mode = 'live';
     if (curUrl) URL.revokeObjectURL(curUrl);
     curUrl = URL.createObjectURL(f);
     player.src = curUrl;
+    stage = 'lecture';
     await player.play();
     $('title').textContent = base(t.name);
     markCurrent();
     if ('mediaSession' in navigator) navigator.mediaSession.metadata = new MediaMetadata({ title: base(t.name), artist: 'Vumètre LED' });
   } catch (e) {
     console.warn(e);
-    say(e && e.name === 'NotAllowedError' ? 'Autorisation perdue : appuie sur « Reprendre »' : 'Lecture impossible : ' + t.name, 5000);
-    if (e && e.name === 'NotAllowedError') $('bResume').hidden = false;
+    const name = e && e.name;
+    if (stage === 'fichier' && name === 'NotAllowedError') {
+      say('Autorisation perdue : appuie sur « Reprendre »', 5000); $('bResume').hidden = false;
+    } else if (stage === 'lecture' && name === 'NotAllowedError') {
+      say('Lecture bloquée par le navigateur : appuie sur ▶', 5000);
+    } else say('Lecture impossible (' + stage + ', ' + name + ') : ' + t.name, 5000);
   }
 }
 function next() {
@@ -413,6 +421,7 @@ $('bNext').onclick = next; $('bPrev').onclick = prev; $('bPlay').onclick = toggl
 $('bShuf').onclick = () => { shuffle = !shuffle; store.set('shuf', shuffle ? '1' : '0'); $('bShuf').classList.toggle('on', shuffle); };
 $('bList').onclick = () => { $('list').classList.toggle('open'); markCurrent(); };
 player.onended = next;
+player.onerror = () => say('Erreur du lecteur (code ' + (player.error && player.error.code) + ')', 5000);
 player.onplay = () => $('bPlay').textContent = '⏸';
 player.onpause = () => $('bPlay').textContent = '▶';
 let seeking = false;
