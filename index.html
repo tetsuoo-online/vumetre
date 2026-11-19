@@ -31,6 +31,7 @@
   .item.cur{color:#e9c46a;background:#1a1810}
   #toast{position:fixed;left:50%;top:56px;transform:translateX(-50%);background:#000d;border:1px solid #333;border-radius:8px;padding:6px 12px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:9}
   #toast.show{opacity:1}
+  #info{position:fixed;left:8px;right:8px;top:52px;bottom:8px;overflow:auto;margin:0;padding:10px;background:#000e;border:1px solid #444;border-radius:8px;font:11px/1.4 ui-monospace,monospace;color:#cfc;white-space:pre-wrap;word-break:break-all;z-index:8;user-select:text}
   [hidden]{display:none!important}
 </style>
 </head>
@@ -38,6 +39,7 @@
 <canvas id="c"></canvas>
 
 <div id="top" class="bar">
+  <button id="bUpdate" hidden>⟳ Mettre à jour</button>
   <button id="bDir">📁 Dossier</button>
   <button id="bFiles">🎵 Fichiers</button>
   <button id="bResume" hidden>↻ Reprendre</button>
@@ -48,6 +50,7 @@
   <label>☀ <input id="bri" type="range" min="0.2" max="1" step="0.01" value="1"></label>
   <label>◢ <input id="sens" type="range" min="0.5" max="2" step="0.01" value="1"></label>
   <button id="bFull">⛶</button>
+  <button id="bInfo">ℹ</button>
 </div>
 
 <div id="bottom" class="bar">
@@ -66,6 +69,7 @@
 
 <div id="list"></div>
 <div id="toast"></div>
+<pre id="info" hidden></pre>
 <audio id="player" preload="auto"></audio>
 <input id="fileIn" type="file" accept="audio/*" multiple hidden>
 
@@ -74,6 +78,17 @@
 const COLS = 24, ROWS = 8;
 
 const $ = id => document.getElementById(id);
+const VERSION = '2026-11-20-b';
+
+// ---- Journal (affiché par le bouton ℹ) ----
+const LOG = [];
+function log(...a) {
+  LOG.push(new Date().toLocaleTimeString() + ' ' + a.map(x => String(x)).join(' '));
+  if (LOG.length > 60) LOG.shift();
+}
+for (const k of ['warn', 'error']) { const o = console[k]; console[k] = (...a) => { log(k.toUpperCase(), ...a); o.apply(console, a); }; }
+addEventListener('error', e => log('ERR', e.message, (e.filename || '').split('/').pop() + ':' + e.lineno));
+addEventListener('unhandledrejection', e => log('REJ', e.reason && (e.reason.name + ': ' + e.reason.message)));
 const AUDIO_RE = /\.(mp3|flac|ogg|oga|opus|m4a|aac|wav|weba)$/i;
 const AUDIO_EXT = ['.mp3', '.flac', '.ogg', '.oga', '.opus', '.m4a', '.aac', '.wav', '.weba'];
 const store = {
@@ -284,13 +299,14 @@ let loadSeq = 0;   // un nouveau chargement ou « Vider » annule celui qui est 
 async function loadLibrary(ask) {
   const seq = ++loadSeq, cur = lib;
   const hs = cur.type === 'dir' ? [cur.handle] : cur.handles;
-  for (const h of hs) if (!(await ensurePerm(h, ask))) return false;
+  for (const h of hs) if (!(await ensurePerm(h, ask))) { log('bibliothèque: permission refusée'); return false; }
   const out = [];
   if (cur.type === 'dir') await scanDir(cur.handle, out, '');
   else for (const h of cur.handles) out.push({ name: h.name, path: '', get: () => h.getFile() });
   if (seq !== loadSeq) return null;   // annulé entre-temps
   out.sort((a, b) => (a.path + a.name).localeCompare(b.path + b.name, undefined, { numeric: true, sensitivity: 'base' }));
   tracks = out; idx = -1; renderList(); $('bResume').hidden = true;
+  log('bibliothèque: ' + tracks.length + ' pistes');
   say(tracks.length + ' piste(s)');
   return true;
 }
@@ -320,11 +336,14 @@ const isAbort = e => e && e.name === 'AbortError';
 if (!('showDirectoryPicker' in window)) $('bDir').hidden = true;
 $('bDir').onclick = async () => {
   try {
+    log('dossier: sélecteur demandé');
     const h = await showDirectoryPicker({ mode: 'read' });
+    log('dossier: choisi');
     if (await setLibrary({ type: 'dir', handle: h }) && tracks.length) play(0);
   } catch (e) { if (!isAbort(e)) { console.warn(e); say('Dossier impossible (' + (e && e.name) + ') : essaie « Fichiers »', 5000); } }
 };
 $('bFiles').onclick = async () => {
+  log('fichiers: clic, showOpenFilePicker=' + ('showOpenFilePicker' in window));
   if ('showOpenFilePicker' in window) {
     try {
       const hs = await showOpenFilePicker({ multiple: true, types: [{ description: 'Audio', accept: { 'audio/*': AUDIO_EXT } }] });
@@ -335,6 +354,7 @@ $('bFiles').onclick = async () => {
   $('fileIn').click();     // repli : sélection non mémorisée
 };
 $('fileIn').onchange = e => {
+  log('repli input: ' + e.target.files.length + ' fichier(s)');
   const fs = [...e.target.files].filter(f => AUDIO_RE.test(f.name) || f.type.startsWith('audio/'));
   if (!fs.length) return;
   fs.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
@@ -393,13 +413,14 @@ async function play(i) {
     curUrl = URL.createObjectURL(f);
     player.src = curUrl;
     stage = 'lecture';
-    await player.play();
+    await player.play(); log('lecture: démarrée');
     $('title').textContent = base(t.name);
     markCurrent();
     if ('mediaSession' in navigator) navigator.mediaSession.metadata = new MediaMetadata({ title: base(t.name), artist: 'Vumètre LED' });
   } catch (e) {
     console.warn(e);
     const name = e && e.name;
+    log('lecture: échec (' + stage + ') ' + name + ' ' + (e && e.message));
     if (stage === 'fichier' && name === 'NotAllowedError') {
       say('Autorisation perdue : appuie sur « Reprendre »', 5000); $('bResume').hidden = false;
     } else if (stage === 'lecture' && name === 'NotAllowedError') {
@@ -421,7 +442,11 @@ $('bNext').onclick = next; $('bPrev').onclick = prev; $('bPlay').onclick = toggl
 $('bShuf').onclick = () => { shuffle = !shuffle; store.set('shuf', shuffle ? '1' : '0'); $('bShuf').classList.toggle('on', shuffle); };
 $('bList').onclick = () => { $('list').classList.toggle('open'); markCurrent(); };
 player.onended = next;
-player.onerror = () => say('Erreur du lecteur (code ' + (player.error && player.error.code) + ')', 5000);
+player.onerror = () => {
+  const c = player.error && player.error.code;
+  log('lecteur: erreur ' + c + ' ' + (player.error && player.error.message));
+  say('Erreur du lecteur (code ' + c + ')', 5000);
+};
 player.onplay = () => $('bPlay').textContent = '⏸';
 player.onpause = () => $('bPlay').textContent = '▶';
 let seeking = false;
@@ -464,6 +489,48 @@ async function lockScreen() {
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') lockScreen(); });
 addEventListener('pointerdown', lockScreen, { once: true });
 lockScreen();
+
+// ---- Écran de diagnostic (bouton ℹ) : touche le texte pour le copier ----
+function infoText() {
+  const dm = matchMedia('(display-mode: fullscreen)').matches ? 'fullscreen'
+    : matchMedia('(display-mode: standalone)').matches ? 'standalone' : 'navigateur';
+  return ['version ' + VERSION,
+    'affichage: ' + dm + ' · sécurisé: ' + isSecureContext,
+    'API dossier: ' + ('showDirectoryPicker' in window) + ' · API fichiers: ' + ('showOpenFilePicker' in window),
+    'service worker: ' + (navigator.serviceWorker && navigator.serviceWorker.controller ? 'actif' : 'aucun'),
+    'audio: ' + (actx ? actx.state : 'non créé') + ' · source: ' + mode,
+    'pistes: ' + tracks.length + ' · index: ' + idx + ' · bibliothèque: ' + (lib ? lib.type : 'aucune'),
+    'lecteur: ready=' + player.readyState + ' paused=' + player.paused + ' erreur=' + (player.error ? player.error.code : '-'),
+    'écran: ' + innerWidth + 'x' + innerHeight + ' @' + devicePixelRatio,
+    navigator.userAgent,
+    '--- journal ---', ...LOG].join('\n');
+}
+$('bInfo').onclick = () => {
+  const p = $('info');
+  p.hidden = !p.hidden;
+  if (!p.hidden) p.textContent = infoText();
+};
+$('info').onclick = () => { try { navigator.clipboard.writeText($('info').textContent); say('Copié'); } catch {} };
+log('démarrage v' + VERSION);
+
+// ---- Détection de mise à jour : compare la version en ligne à celle qui tourne ----
+async function checkUpdate() {
+  try {
+    const r = await fetch('index.html?nocache=' + Date.now(), { cache: 'no-store' });
+    const m = (await r.text()).match(/const VERSION = '([^']+)'/);
+    if (m && m[1] !== VERSION) {
+      $('bUpdate').hidden = false;
+      $('bUpdate').textContent = '⟳ Mettre à jour';
+      say('Mise à jour disponible', 6000); log('mise à jour disponible: ' + m[1]);
+    }
+  } catch (e) { log('vérification de mise à jour impossible'); }
+}
+$('bUpdate').onclick = async () => {
+  try { const reg = await navigator.serviceWorker.getRegistration(); if (reg) await reg.update(); } catch {}
+  location.reload();
+};
+setTimeout(checkUpdate, 3000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkUpdate(); });
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(console.warn);
 </script>
