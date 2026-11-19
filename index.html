@@ -41,6 +41,7 @@
   <button id="bDir">📁 Dossier</button>
   <button id="bFiles">🎵 Fichiers</button>
   <button id="bResume" hidden>↻ Reprendre</button>
+  <button id="bClear" hidden>🗑 Vider</button>
   <button id="bMic">🎤 Micro</button>
   <button id="bSys">🖥 Audio système</button>
   <select id="pal"></select>
@@ -279,19 +280,36 @@ async function scanDir(dir, out, path, depth = 0) {
     else if (h.kind === 'directory' && depth < 4) await scanDir(h, out, path + name + '/', depth + 1);
   }
 }
+let loadSeq = 0;   // un nouveau chargement ou « Vider » annule celui qui est en cours
 async function loadLibrary(ask) {
-  const hs = lib.type === 'dir' ? [lib.handle] : lib.handles;
+  const seq = ++loadSeq, cur = lib;
+  const hs = cur.type === 'dir' ? [cur.handle] : cur.handles;
   for (const h of hs) if (!(await ensurePerm(h, ask))) return false;
   const out = [];
-  if (lib.type === 'dir') await scanDir(lib.handle, out, '');
-  else for (const h of lib.handles) out.push({ name: h.name, path: '', get: () => h.getFile() });
+  if (cur.type === 'dir') await scanDir(cur.handle, out, '');
+  else for (const h of cur.handles) out.push({ name: h.name, path: '', get: () => h.getFile() });
+  if (seq !== loadSeq) return null;   // annulé entre-temps
   out.sort((a, b) => (a.path + a.name).localeCompare(b.path + b.name, undefined, { numeric: true, sensitivity: 'base' }));
   tracks = out; idx = -1; renderList(); $('bResume').hidden = true;
   say(tracks.length + ' piste(s)');
   return true;
 }
+function syncClear() { $('bClear').hidden = !(tracks.length || lib); }
+async function clearLibrary() {
+  loadSeq++;
+  player.pause(); player.removeAttribute('src'); player.load();
+  if (curUrl) { URL.revokeObjectURL(curUrl); curUrl = null; }
+  tracks = []; idx = -1; lib = null;
+  try { await DB.set('lib', null); } catch (e) { console.warn(e); }
+  if (!liveSrc) mode = 'demo';
+  renderList(); $('bResume').hidden = true;
+  $('seek').value = 0; $('time').textContent = ''; $('title').textContent = 'Playlist vidée';
+  $('list').classList.remove('open');
+  say('Playlist vidée');
+}
+$('bClear').onclick = clearLibrary;
 async function setLibrary(l) {
-  lib = l;
+  lib = l; syncClear();
   try { await DB.set('lib', l); } catch (e) { console.warn(e); say('Bibliothèque non mémorisable ici'); }
   return loadLibrary(true);
 }
@@ -302,7 +320,7 @@ $('bDir').onclick = async () => {
   try {
     const h = await showDirectoryPicker({ mode: 'read' });
     if (await setLibrary({ type: 'dir', handle: h }) && tracks.length) play(0);
-  } catch (e) { if (!isAbort(e)) { console.warn(e); say('Dossier non supporté : utilise « Fichiers »'); } }
+  } catch (e) { if (!isAbort(e)) { console.warn(e); say('Dossier impossible (' + (e && e.name) + ') : essaie « Fichiers »', 5000); } }
 };
 $('bFiles').onclick = async () => {
   if ('showOpenFilePicker' in window) {
@@ -310,7 +328,7 @@ $('bFiles').onclick = async () => {
       const hs = await showOpenFilePicker({ multiple: true, types: [{ description: 'Audio', accept: { 'audio/*': AUDIO_EXT } }] });
       if (await setLibrary({ type: 'files', handles: hs }) && tracks.length) play(0);
       return;
-    } catch (e) { if (isAbort(e)) return; console.warn(e); }
+    } catch (e) { if (isAbort(e)) return; console.warn(e); say('Sélecteur avancé indisponible (' + (e && e.name) + ')', 5000); }
   }
   $('fileIn').click();     // repli : sélection non mémorisée
 };
@@ -331,10 +349,12 @@ $('bResume').onclick = async () => {
 (async () => {
   try { lib = await DB.get('lib'); } catch {}
   if (!lib) return;
-  if (!(await loadLibrary(false))) {
+  const first = lib;
+  if ((await loadLibrary(false)) === false && lib === first) {
     $('bResume').hidden = false;
     $('bResume').textContent = '↻ ' + (lib.type === 'dir' ? lib.handle.name : lib.handles.length + ' fichiers');
   }
+  syncClear();
 })();
 
 // ---- Lecteur / playlist ----
@@ -352,6 +372,7 @@ function renderList() {
     d.onclick = () => play(i);
     l.appendChild(d);
   });
+  syncClear();
 }
 function markCurrent() {
   [...$('list').children].forEach((d, i) => d.classList.toggle('cur', i === idx));
