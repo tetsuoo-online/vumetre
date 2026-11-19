@@ -42,6 +42,7 @@
   <button id="bUpdate" hidden>⟳ Mettre à jour</button>
   <button id="bDir">📁 Dossier</button>
   <button id="bFiles">🎵 Fichiers</button>
+  <button id="bSimple">📄 Simple</button>
   <button id="bResume" hidden>↻ Reprendre</button>
   <button id="bClear" hidden>🗑 Vider</button>
   <button id="bMic">🎤 Micro</button>
@@ -78,7 +79,7 @@
 const COLS = 24, ROWS = 8;
 
 const $ = id => document.getElementById(id);
-const VERSION = '2026-11-20-b';
+const VERSION = '2026-11-20-c';
 
 // ---- Journal (affiché par le bouton ℹ) ----
 const LOG = [];
@@ -335,24 +336,38 @@ const isAbort = e => e && e.name === 'AbortError';
 
 if (!('showDirectoryPicker' in window)) $('bDir').hidden = true;
 $('bDir').onclick = async () => {
+  const t0 = performance.now(), ms = () => Math.round(performance.now() - t0) + ' ms';
   try {
     log('dossier: sélecteur demandé');
     const h = await showDirectoryPicker({ mode: 'read' });
-    log('dossier: choisi');
+    log('dossier: choisi après ' + ms());
     if (await setLibrary({ type: 'dir', handle: h }) && tracks.length) play(0);
-  } catch (e) { if (!isAbort(e)) { console.warn(e); say('Dossier impossible (' + (e && e.name) + ') : essaie « Fichiers »', 5000); } }
+  } catch (e) {
+    log('dossier: ' + (e && e.name) + ' après ' + ms() + ' : ' + (e && e.message));
+    if (!isAbort(e)) { console.warn(e); say('Dossier impossible (' + (e && e.name) + ') : essaie « Fichiers »', 5000); }
+    else if (performance.now() - t0 < 800) say("Le sélecteur s'est fermé aussitôt : essaie « Simple »", 5000);
+  }
 };
 $('bFiles').onclick = async () => {
+  const t0 = performance.now(), ms = () => Math.round(performance.now() - t0) + ' ms';
   log('fichiers: clic, showOpenFilePicker=' + ('showOpenFilePicker' in window));
   if ('showOpenFilePicker' in window) {
     try {
       const hs = await showOpenFilePicker({ multiple: true, types: [{ description: 'Audio', accept: { 'audio/*': AUDIO_EXT } }] });
+      log('fichiers: ' + hs.length + ' reçu(s) après ' + ms());
       if (await setLibrary({ type: 'files', handles: hs }) && tracks.length) play(0);
       return;
-    } catch (e) { if (isAbort(e)) return; console.warn(e); say('Sélecteur avancé indisponible (' + (e && e.name) + ')', 5000); }
+    } catch (e) {
+      log('fichiers: ' + (e && e.name) + ' après ' + ms() + ' : ' + (e && e.message));
+      if (isAbort(e)) {
+        if (performance.now() - t0 > 800) return;          // annulation normale par l'utilisateur
+        say("Sélecteur avancé refusé : mode simple", 4000);  // fermé aussitôt : on bascule sur le mode simple
+      } else { console.warn(e); say('Sélecteur avancé indisponible (' + (e && e.name) + ')', 5000); }
+    }
   }
   $('fileIn').click();     // repli : sélection non mémorisée
 };
+$('bSimple').onclick = () => { log('simple: clic'); $('fileIn').click(); };
 $('fileIn').onchange = e => {
   log('repli input: ' + e.target.files.length + ' fichier(s)');
   const fs = [...e.target.files].filter(f => AUDIO_RE.test(f.name) || f.type.startsWith('audio/'));
