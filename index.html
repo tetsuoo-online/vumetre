@@ -13,6 +13,7 @@
   body{display:flex;align-items:center;justify-content:center}
   body.idle{cursor:none}
   canvas{display:block;border-radius:6px}
+  body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   .bar{position:fixed;left:0;right:0;display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center;padding:8px calc(8px + env(safe-area-inset-right)) 8px calc(8px + env(safe-area-inset-left));transition:opacity .4s;z-index:5}
   #top{top:0;background:linear-gradient(#000c,#0000)}
   #bottom{bottom:0;background:linear-gradient(#0000,#000c);flex-direction:column;gap:4px}
@@ -45,7 +46,6 @@
   <button id="bUpdate" hidden>⟳ Mettre à jour</button>
   <button id="bDir">📁 Dossier</button>
   <button id="bFiles">🎵 Fichiers</button>
-  <button id="bSimple">📄 Simple</button>
   <button id="bResume" hidden>↻ Reprendre</button>
   <button id="bClear" hidden>🗑 Vider</button>
   <button id="bMic">🎤 Micro</button>
@@ -85,7 +85,7 @@
 const COLS = 24, ROWS = 8;
 
 const $ = id => document.getElementById(id);
-const VERSION = '2026-11-20-e';
+const VERSION = '2026-11-20-f';
 
 // ---- Journal (affiché par le bouton ℹ) ----
 const LOG = [];
@@ -344,7 +344,7 @@ if (!('showDirectoryPicker' in window)) $('bDir').hidden = true;
 $('bDir').onclick = async () => {
   const t0 = performance.now(), ms = () => Math.round(performance.now() - t0) + ' ms';
   try {
-    log('dossier: sélecteur demandé');
+    reenter = !!document.fullscreenElement; log('dossier: sélecteur demandé');
     const h = await showDirectoryPicker({ mode: 'read' });
     log('dossier: choisi après ' + ms());
     if (await setLibrary({ type: 'dir', handle: h }) && tracks.length) play(0);
@@ -356,6 +356,7 @@ $('bDir').onclick = async () => {
 };
 $('bFiles').onclick = async () => {
   const t0 = performance.now(), ms = () => Math.round(performance.now() - t0) + ' ms';
+  reenter = !!document.fullscreenElement;
   log('fichiers: clic, showOpenFilePicker=' + ('showOpenFilePicker' in window));
   if ('showOpenFilePicker' in window) {
     try {
@@ -373,7 +374,6 @@ $('bFiles').onclick = async () => {
   }
   $('fileIn').click();     // repli : sélection non mémorisée
 };
-$('bSimple').onclick = () => { log('simple: clic'); $('fileIn').click(); };
 $('fileIn').onchange = e => {
   log('repli input: ' + e.target.files.length + ' fichier(s)');
   const fs = [...e.target.files].filter(f => AUDIO_RE.test(f.name) || f.type.startsWith('audio/'));
@@ -495,14 +495,22 @@ addEventListener('keydown', e => {
 });
 
 // ---- Plein écran + écran allumé ----
-$('bFull').onclick = async () => {
+let reenter = false;   // vrai si un sélecteur de fichiers a fait quitter le plein écran
+async function enterFull() {
   try {
-    if (!document.fullscreenElement) {
-      await document.documentElement.requestFullscreen();
-      try { await screen.orientation.lock('landscape'); } catch {}
-    } else { await document.exitFullscreen(); try { screen.orientation.unlock(); } catch {} }
+    await document.documentElement.requestFullscreen();
+    try { await screen.orientation.lock('landscape'); } catch {}
   } catch (e) { console.warn(e); }
+}
+$('bFull').onclick = async () => {
+  reenter = false;
+  if (!document.fullscreenElement) await enterFull();
+  else { try { await document.exitFullscreen(); screen.orientation.unlock(); } catch {} }
 };
+// Après le sélecteur de fichiers, le prochain appui sur l'écran remet le plein écran
+addEventListener('pointerup', () => {
+  if (reenter && !document.fullscreenElement) { reenter = false; enterFull(); }
+}, { passive: true });
 let wl = null;
 async function lockScreen() {
   try { if ('wakeLock' in navigator && !wl) { wl = await navigator.wakeLock.request('screen'); wl.onrelease = () => wl = null; } } catch {}
