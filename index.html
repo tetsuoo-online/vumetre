@@ -26,8 +26,11 @@
   label{display:flex;align-items:center;gap:5px;white-space:nowrap}
   #seek{flex:1;max-width:560px;min-width:120px}
   #title{max-width:60vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  #list{position:fixed;right:0;top:48px;bottom:84px;width:min(380px,82vw);overflow:auto;background:#0b0b0df0;border-left:1px solid #2a2a2e;display:none;z-index:4;transition:opacity .4s}
-  #list.open{display:block}
+  #list{position:fixed;right:0;top:48px;bottom:84px;width:min(380px,82vw);flex-direction:column;background:#0b0b0df0;border-left:1px solid #2a2a2e;display:none;z-index:4;transition:opacity .4s}
+  #list.open{display:flex}
+  body.setopen #bottom,body.setopen #list{opacity:0;pointer-events:none}
+  #items{flex:1;overflow:auto}
+  #listFoot{padding:8px;border-top:1px solid #2a2a2e;text-align:center}
   .item{padding:9px 12px;border-bottom:1px solid #1a1a1d;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .item.cur{color:#e9c46a;background:#1a1810}
   #toast{position:fixed;left:50%;top:56px;transform:translateX(-50%);background:#000d;border:1px solid #333;border-radius:8px;padding:6px 12px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:30}
@@ -35,7 +38,19 @@
   #infoBox{position:fixed;inset:0;z-index:20;background:#000;display:flex;flex-direction:column}
   #infoBar{display:flex;gap:8px;justify-content:flex-end;padding:8px calc(8px + env(safe-area-inset-right)) 8px 8px}
   #info{flex:1;overflow:auto;margin:0;padding:10px;font:11px/1.4 ui-monospace,monospace;color:#cfc;white-space:pre-wrap;word-break:break-all;user-select:text}
-  label input[type=range]{width:72px}
+  #settings{position:fixed;left:0;right:0;bottom:0;z-index:7;display:grid;grid-template-columns:1fr 1fr;gap:6px 28px;padding:12px calc(18px + env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));background:#000b;border-top:1px solid #3a3a40}
+  #settings .set{min-width:0}
+  #settings .shead{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;color:#ddd}
+  #settings .sval{color:#e9c46a;font-variant-numeric:tabular-nums}
+  #settings .sbtns{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:2px}
+  #settings .sbtns button{padding:10px 14px;font-size:14px}
+  #settings input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:40px;margin:0;background:transparent}
+  #settings input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:4px;background:linear-gradient(to right,#c9a24a var(--p,50%),#3a3a40 var(--p,50%))}
+  #settings input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;margin-top:-11px;border-radius:50%;background:#e9c46a;border:2px solid #000}
+  #settings input[type=range]::-moz-range-track{height:8px;border-radius:4px;background:#3a3a40}
+  #settings input[type=range]::-moz-range-progress{height:8px;border-radius:4px;background:#c9a24a}
+  #settings input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;background:#e9c46a;border:2px solid #000}
+  @media (max-width:560px){#settings{grid-template-columns:1fr}}
   [hidden]{display:none!important}
 </style>
 </head>
@@ -47,14 +62,9 @@
   <button id="bDir">📁 Dossier</button>
   <button id="bFiles">🎵 Fichiers</button>
   <button id="bResume" hidden>↻ Reprendre</button>
-  <button id="bClear" hidden>🗑 Vider</button>
-  <button id="bMic">🎤 Micro</button>
-  <button id="bSys">🖥 Audio système</button>
   <select id="pal"></select>
-  <label>☀ <input id="bri" type="range" min="0.2" max="1" step="0.01" value="0.8"></label>
-  <label>◢ <input id="sens" type="range" min="0.5" max="2" step="0.01" value="1"></label>
+  <button id="bSet">⚙</button>
   <button id="bFull">⛶</button>
-  <button id="bInfo">ℹ</button>
 </div>
 
 <div id="bottom" class="bar">
@@ -71,7 +81,26 @@
   </div>
 </div>
 
-<div id="list"></div>
+<div id="list">
+  <div id="items"></div>
+  <div id="listFoot" hidden><button id="bClear">🗑 Vider la playlist</button></div>
+</div>
+<div id="settings" hidden>
+  <div class="set">
+    <div class="shead"><span>☀ Luminosité</span><span id="briVal" class="sval"></span></div>
+    <input id="bri" type="range" min="0.2" max="1" step="0.05" value="0.8">
+  </div>
+  <div class="set">
+    <div class="shead"><span>◢ Sensibilité</span><span id="sensVal" class="sval"></span></div>
+    <input id="sens" type="range" min="0.5" max="2" step="0.05" value="1">
+  </div>
+  <div class="sbtns">
+    <button id="bMic">🎤 Micro</button>
+    <button id="bSys">🖥 Audio système</button>
+    <button id="bReset">↺ Réinitialiser</button>
+    <button id="bInfo">ℹ Infos</button>
+  </div>
+</div>
 <div id="toast"></div>
 <div id="infoBox" hidden>
   <div id="infoBar"><button id="infoCopy">Copier</button><button id="infoClose">✕ Fermer</button></div>
@@ -85,7 +114,7 @@
 const COLS = 24, ROWS = 8;
 
 const $ = id => document.getElementById(id);
-const VERSION = '2026-11-20-f';
+const VERSION = '2026-11-20-i';
 
 // ---- Journal (affiché par le bouton ℹ) ----
 const LOG = [];
@@ -130,8 +159,21 @@ const palSel = $('pal');
 for (const k in PALETTES) palSel.add(new Option(k, k));
 if (PALETTES[store.get('pal')]) palSel.value = store.get('pal');
 palSel.onchange = () => store.set('pal', palSel.value);
-$('bri').value = store.get('bri', 0.8); $('bri').oninput = e => store.set('bri', e.target.value);
-$('sens').value = store.get('sens', 1); $('sens').oninput = e => store.set('sens', e.target.value);
+// Curseurs de réglage : valeur affichée, mémorisée, et fonction de remise par défaut
+const fmtBri = v => Math.round(v * 100) + ' %';
+const fmtSens = v => '×' + Number(v).toFixed(2).replace('.', ',');
+function bindSlider(id, key, def, valId, fmt) {
+  const el = $(id), out = $(valId);
+  const sync = () => {
+    out.textContent = fmt(el.value);
+    el.style.setProperty('--p', (el.value - el.min) / (el.max - el.min) * 100 + '%');
+  };
+  el.value = store.get(key, def); sync();
+  el.oninput = () => { store.set(key, el.value); sync(); };
+  return () => { el.value = def; store.set(key, def); sync(); };
+}
+const resetBri = bindSlider('bri', 'bri', 0.8, 'briVal', fmtBri);
+const resetSens = bindSlider('sens', 'sens', 1, 'sensVal', fmtSens);
 const pal = t => PALETTES[palSel.value](Math.min(1, Math.max(0, t)));
 const hsl = (c, a = 1) => `hsla(${c[0]},${c[1]}%,${c[2]}%,${a})`;
 
@@ -317,7 +359,7 @@ async function loadLibrary(ask) {
   say(tracks.length + ' piste(s)');
   return true;
 }
-function syncClear() { $('bClear').hidden = !(tracks.length || lib); }
+function syncClear() { $('listFoot').hidden = !(tracks.length || lib); }
 async function clearLibrary() {
   loadSeq++;
   // On ne réinitialise pas l'élément audio (src vide + load()) : sur Android cela peut bloquer les lectures suivantes
@@ -407,7 +449,7 @@ let shuffle = store.get('shuf', '0') === '1';
 $('bShuf').classList.toggle('on', shuffle);
 
 function renderList() {
-  const l = $('list'); l.textContent = '';
+  const l = $('items'); l.textContent = '';
   tracks.forEach((t, i) => {
     const d = document.createElement('div');
     d.className = 'item' + (i === idx ? ' cur' : '');
@@ -418,8 +460,8 @@ function renderList() {
   syncClear();
 }
 function markCurrent() {
-  [...$('list').children].forEach((d, i) => d.classList.toggle('cur', i === idx));
-  const cur = $('list').children[idx]; cur && cur.scrollIntoView({ block: 'nearest' });
+  [...$('items').children].forEach((d, i) => d.classList.toggle('cur', i === idx));
+  const cur = $('items').children[idx]; cur && cur.scrollIntoView({ block: 'nearest' });
 }
 async function play(i) {
   if (!tracks.length) return;
@@ -511,6 +553,10 @@ $('bFull').onclick = async () => {
 addEventListener('pointerup', () => {
   if (reenter && !document.fullscreenElement) { reenter = false; enterFull(); }
 }, { passive: true });
+// Le bouton ⛶ n'a de sens que dans un onglet de navigateur : l'app installée est déjà en plein écran,
+// et l'API n'existe pas sur iPhone
+const installedApp = ['fullscreen', 'standalone', 'minimal-ui'].some(m => matchMedia('(display-mode: ' + m + ')').matches) || navigator.standalone === true;
+if (installedApp || !document.documentElement.requestFullscreen) $('bFull').hidden = true;
 let wl = null;
 async function lockScreen() {
   try { if ('wakeLock' in navigator && !wl) { wl = await navigator.wakeLock.request('screen'); wl.onrelease = () => wl = null; } } catch {}
@@ -537,6 +583,19 @@ function infoText() {
 $('bInfo').onclick = () => { $('info').textContent = infoText(); $('infoBox').hidden = false; };
 $('infoClose').onclick = () => { $('infoBox').hidden = true; };
 $('infoCopy').onclick = () => { try { navigator.clipboard.writeText($('info').textContent); say('Copié'); } catch {} };
+
+// ---- Panneau de réglages (⚙) : s'ouvre et se ferme uniquement sur action (⚙, ou toucher en dehors du panneau) ----
+const settings = $('settings');
+function closeSettings() { settings.hidden = true; document.body.classList.remove('setopen'); }
+$('bSet').onclick = () => {
+  if (settings.hidden) { settings.hidden = false; document.body.classList.add('setopen'); }
+  else closeSettings();
+};
+addEventListener('pointerdown', e => {
+  if (!settings.hidden && !settings.contains(e.target) && !e.target.closest('#bSet')) closeSettings();
+});
+$('bReset').onclick = () => { resetBri(); resetSens(); say('Réglages par défaut'); };
+['bMic', 'bSys', 'bInfo'].forEach(id => $(id).addEventListener('click', closeSettings));
 log('démarrage v' + VERSION);
 
 // ---- Détection de mise à jour : compare la version en ligne à celle qui tourne ----
