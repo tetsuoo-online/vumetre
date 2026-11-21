@@ -40,7 +40,13 @@
   #info{flex:1;overflow:auto;margin:0;padding:10px;font:11px/1.4 ui-monospace,monospace;color:#cfc;white-space:pre-wrap;word-break:break-all;user-select:text}
   #settings{position:fixed;left:0;right:0;bottom:0;z-index:7;display:grid;grid-template-columns:1fr 1fr;gap:6px 28px;padding:12px calc(18px + env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));background:#000b;border-top:1px solid #3a3a40}
   #settings .set{min-width:0}
-  #settings .shead{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;color:#ddd}
+  #settings .shead{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:#ddd;min-height:32px}
+  #settings .sright{display:flex;align-items:center;gap:6px}
+  #settings .rst{padding:2px 10px;font-size:16px;line-height:1.4}
+  #settings .rst:disabled{opacity:.25;cursor:default}
+  #settings .xy{display:flex;align-items:center;gap:8px}
+  #settings .xy input[type=range]{flex:1;min-width:0;width:auto}
+  #settings .pm{width:40px;height:40px;padding:0;font-size:22px;line-height:1;flex:none;touch-action:manipulation}
   #settings .sval{color:#e9c46a;font-variant-numeric:tabular-nums}
   #settings .sbtns{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:2px}
   #settings .sbtns button{padding:10px 14px;font-size:14px}
@@ -87,17 +93,24 @@
 </div>
 <div id="settings" hidden>
   <div class="set">
-    <div class="shead"><span>☀ Luminosité</span><span id="briVal" class="sval"></span></div>
+    <div class="shead"><span>☀ Luminosité</span><span class="sright"><span id="briVal" class="sval"></span><button id="rstBri" class="rst" title="Valeur par défaut">↺</button></span></div>
     <input id="bri" type="range" min="0.2" max="1" step="0.05" value="0.8">
   </div>
   <div class="set">
-    <div class="shead"><span>◢ Sensibilité</span><span id="sensVal" class="sval"></span></div>
+    <div class="shead"><span>◢ Sensibilité</span><span class="sright"><span id="sensVal" class="sval"></span><button id="rstSens" class="rst" title="Valeur par défaut">↺</button></span></div>
     <input id="sens" type="range" min="0.5" max="2" step="0.05" value="1">
+  </div>
+  <div class="set">
+    <div class="shead"><span>↔ Colonnes (X)</span><span class="sright"><span id="colsVal" class="sval"></span><button id="rstCols" class="rst" title="Valeur par défaut">↺</button></span></div>
+    <div class="xy"><button id="colsMinus" class="pm">−</button><input id="colsSl" type="range" min="0" max="1000" step="1" value="0"><button id="colsPlus" class="pm">+</button></div>
+  </div>
+  <div class="set">
+    <div class="shead"><span>↕ Lignes (Y)</span><span class="sright"><span id="rowsVal" class="sval"></span><button id="rstRows" class="rst" title="Valeur par défaut">↺</button></span></div>
+    <div class="xy"><button id="rowsMinus" class="pm">−</button><input id="rowsSl" type="range" min="0" max="1000" step="1" value="0"><button id="rowsPlus" class="pm">+</button></div>
   </div>
   <div class="sbtns">
     <button id="bMic">🎤 Micro</button>
     <button id="bSys">🖥 Audio système</button>
-    <button id="bReset">↺ Réinitialiser</button>
     <button id="bInfo">ℹ Infos</button>
   </div>
 </div>
@@ -111,10 +124,10 @@
 
 <script>
 // ---- Réglages de la matrice ----
-const COLS = 24, ROWS = 8;
+let COLS = 24, ROWS = 8;   // modifiables depuis le panneau ⚙
 
 const $ = id => document.getElementById(id);
-const VERSION = '2026-11-20-i';
+const VERSION = '2026-11-21-a';
 
 // ---- Journal (affiché par le bouton ℹ) ----
 const LOG = [];
@@ -159,21 +172,65 @@ const palSel = $('pal');
 for (const k in PALETTES) palSel.add(new Option(k, k));
 if (PALETTES[store.get('pal')]) palSel.value = store.get('pal');
 palSel.onchange = () => store.set('pal', palSel.value);
-// Curseurs de réglage : valeur affichée, mémorisée, et fonction de remise par défaut
+// Curseurs de réglage : valeur affichée, mémorisée, avec un ↺ par curseur (grisé quand la valeur est celle par défaut)
 const fmtBri = v => Math.round(v * 100) + ' %';
 const fmtSens = v => '×' + Number(v).toFixed(2).replace('.', ',');
-function bindSlider(id, key, def, valId, fmt) {
-  const el = $(id), out = $(valId);
+function bindSlider(id, key, def, valId, fmt, rstId) {
+  const el = $(id), out = $(valId), rst = $(rstId);
   const sync = () => {
     out.textContent = fmt(el.value);
     el.style.setProperty('--p', (el.value - el.min) / (el.max - el.min) * 100 + '%');
+    rst.disabled = Math.abs(el.value - def) < 0.001;
   };
   el.value = store.get(key, def); sync();
   el.oninput = () => { store.set(key, el.value); sync(); };
-  return () => { el.value = def; store.set(key, def); sync(); };
+  rst.onclick = () => { el.value = def; store.set(key, def); sync(); };
 }
-const resetBri = bindSlider('bri', 'bri', 0.8, 'briVal', fmtBri);
-const resetSens = bindSlider('sens', 'sens', 1, 'sensVal', fmtSens);
+bindSlider('bri', 'bri', 0.8, 'briVal', fmtBri, 'rstBri');
+bindSlider('sens', 'sens', 1, 'sensVal', fmtSens, 'rstSens');
+
+// Taille de la grille (X = colonnes, Y = lignes) : curseur à échelle progressive (fin pour les petites valeurs),
+// boutons − / + pour le réglage précis (maintenir appuyé = répétition accélérée), ↺ pour la valeur par défaut
+const clampInt = (v, lo, hi, d) => { v = Math.round(+v); return Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d; };
+COLS = clampInt(store.get('cols', 24), 4, 200, 24);
+ROWS = clampInt(store.get('rows', 8), 2, 100, 8);
+function holdRepeat(btn, fn) {
+  let t, n = 0;
+  const stop = () => { clearTimeout(t); n = 0; };
+  btn.addEventListener('pointerdown', e => {
+    e.preventDefault(); stop(); fn(1);
+    t = setTimeout(function tick() { n++; fn(1 + Math.floor(n / 8)); t = setTimeout(tick, 70); }, 420);
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => btn.addEventListener(ev, stop));
+  btn.addEventListener('contextmenu', e => e.preventDefault());
+}
+function bindGrid(key, ids, min, max, def, get, set) {
+  const sl = $(ids.slider), out = $(ids.val), rst = $(ids.rst);
+  const toS = v => Math.round(1000 * Math.sqrt((v - min) / (max - min)));
+  const fromS = s => min + Math.round((max - min) * (s / 1000) ** 2);
+  const show = fromSlider => {
+    out.textContent = get();
+    if (!fromSlider) sl.value = toS(get());   // pendant le glissement, on ne repositionne pas la poignée
+    sl.style.setProperty('--p', sl.value / 10 + '%');
+    rst.disabled = get() === def;
+  };
+  const apply = (v, fromSlider) => {
+    v = clampInt(v, min, max, def);
+    if (v === get()) return;
+    set(v); store.set(key, v); show(fromSlider); gridChanged();
+  };
+  sl.oninput = () => { sl.style.setProperty('--p', sl.value / 10 + '%'); apply(fromS(+sl.value), true); };
+  rst.onclick = () => apply(def);
+  holdRepeat($(ids.minus), k => apply(get() - k));
+  holdRepeat($(ids.plus), k => apply(get() + k));
+  show();
+}
+bindGrid('cols', { slider: 'colsSl', val: 'colsVal', rst: 'rstCols', minus: 'colsMinus', plus: 'colsPlus' }, 4, 200, 24, () => COLS, v => { COLS = v; });
+bindGrid('rows', { slider: 'rowsSl', val: 'rowsVal', rst: 'rstRows', minus: 'rowsMinus', plus: 'rowsPlus' }, 2, 100, 8, () => ROWS, v => { ROWS = v; });
+function gridChanged() {   // nouvelle taille : on réalloue les niveaux et on redimensionne le canevas
+  level = new Float32Array(COLS); peak = new Float32Array(COLS); hold = new Float32Array(COLS);
+  resize();
+}
 const pal = t => PALETTES[palSel.value](Math.min(1, Math.max(0, t)));
 const hsl = (c, a = 1) => `hsla(${c[0]},${c[1]}%,${c[2]}%,${a})`;
 
@@ -276,7 +333,7 @@ function demo(t) {
 }
 
 // ---- Rendu ----
-const level = new Float32Array(COLS), peak = new Float32Array(COLS), hold = new Float32Array(COLS);
+let level = new Float32Array(COLS), peak = new Float32Array(COLS), hold = new Float32Array(COLS);
 function frame(ms) {
   const tgt = mode === 'live' ? bands() : demo(ms / 1000);
   for (let i = 0; i < COLS; i++) {
@@ -594,7 +651,6 @@ $('bSet').onclick = () => {
 addEventListener('pointerdown', e => {
   if (!settings.hidden && !settings.contains(e.target) && !e.target.closest('#bSet')) closeSettings();
 });
-$('bReset').onclick = () => { resetBri(); resetSens(); say('Réglages par défaut'); };
 ['bMic', 'bSys', 'bInfo'].forEach(id => $(id).addEventListener('click', closeSettings));
 log('démarrage v' + VERSION);
 
