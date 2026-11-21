@@ -14,12 +14,12 @@
   body.idle{cursor:none}
   canvas{display:block;border-radius:6px}
   body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-  .bar{position:fixed;left:0;right:0;display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center;padding:8px calc(8px + env(safe-area-inset-right)) 8px calc(8px + env(safe-area-inset-left));transition:opacity .4s;z-index:5}
+  .bar{position:fixed;left:0;right:0;display:flex;flex-wrap:wrap;gap:9px;justify-content:center;align-items:center;padding:8px calc(8px + env(safe-area-inset-right)) 8px calc(8px + env(safe-area-inset-left));transition:opacity .4s;z-index:5}
   #top{top:0;background:linear-gradient(#000c,#0000)}
   #bottom{bottom:0;background:linear-gradient(#0000,#000c);flex-direction:column;gap:4px}
   body.idle .bar,body.idle #list{opacity:0;pointer-events:none}
-  .row{display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;width:100%}
-  button,select{background:#1b1b1fcc;color:#ddd;border:1px solid #3a3a40;border-radius:8px;padding:6px 9px;font:inherit;cursor:pointer}
+  .row{display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap;width:100%}
+  button,select{background:#1b1b1fcc;color:#ddd;border:1px solid #3a3a40;border-radius:8px;padding:6px 12px;font:inherit;cursor:pointer}
   button:active{background:#333}
   button.on{border-color:#c9a24a;color:#e9c46a}
   input[type=range]{accent-color:#c9a24a;vertical-align:middle}
@@ -38,7 +38,7 @@
   #infoBox{position:fixed;inset:0;z-index:20;background:#000;display:flex;flex-direction:column}
   #infoBar{display:flex;gap:8px;justify-content:flex-end;padding:8px calc(8px + env(safe-area-inset-right)) 8px 8px}
   #info{flex:1;overflow:auto;margin:0;padding:10px;font:11px/1.4 ui-monospace,monospace;color:#cfc;white-space:pre-wrap;word-break:break-all;user-select:text}
-  #settings{position:fixed;left:0;right:0;bottom:0;z-index:7;display:grid;grid-template-columns:1fr 1fr;gap:6px 28px;padding:12px calc(18px + env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));background:#000b;border-top:1px solid #3a3a40}
+  #settings{position:fixed;left:0;right:0;bottom:0;z-index:7;display:grid;grid-template-columns:minmax(104px,18%) 1fr 1fr;gap:6px 24px;padding:12px calc(18px + env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));background:#000b;border-top:1px solid #3a3a40}
   #settings .set{min-width:0}
   #settings .shead{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:#ddd;min-height:32px}
   #settings .sright{display:flex;align-items:center;gap:6px}
@@ -48,15 +48,20 @@
   #settings .xy input[type=range]{flex:1;min-width:0;width:auto}
   #settings .pm{width:40px;height:40px;padding:0;font-size:22px;line-height:1;flex:none;touch-action:manipulation}
   #settings .sval{color:#e9c46a;font-variant-numeric:tabular-nums}
-  #settings .sbtns{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:2px}
-  #settings .sbtns button{padding:10px 14px;font-size:14px}
+  #settings .sbtns{grid-column:1;grid-row:1 / span 2;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:16px}
+  #settings .sbtns button{width:64px;padding:8px 4px;font-size:13px;white-space:nowrap}
   #settings input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:40px;margin:0;background:transparent}
   #settings input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:4px;background:linear-gradient(to right,#c9a24a var(--p,50%),#3a3a40 var(--p,50%))}
   #settings input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;margin-top:-11px;border-radius:50%;background:#e9c46a;border:2px solid #000}
   #settings input[type=range]::-moz-range-track{height:8px;border-radius:4px;background:#3a3a40}
   #settings input[type=range]::-moz-range-progress{height:8px;border-radius:4px;background:#c9a24a}
   #settings input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;background:#e9c46a;border:2px solid #000}
-  @media (max-width:560px){#settings{grid-template-columns:1fr}}
+  @media (max-width:560px){
+    #settings{grid-template-columns:1fr}
+    #settings .sbtns{grid-column:1/-1;grid-row:auto;flex-direction:row;flex-wrap:wrap;justify-content:center}
+    #settings .sbtns{gap:8px}
+    #settings .sbtns button{width:auto;padding:10px 14px;font-size:14px}
+  }
   [hidden]{display:none!important}
 </style>
 </head>
@@ -109,8 +114,8 @@
     <div class="xy"><button id="rowsMinus" class="pm">−</button><input id="rowsSl" type="range" min="0" max="1000" step="1" value="0"><button id="rowsPlus" class="pm">+</button></div>
   </div>
   <div class="sbtns">
-    <button id="bMic">🎤 Micro</button>
-    <button id="bSys">🖥 Audio système</button>
+    <button id="bMic">🎤 Mic</button>
+    <button id="bSys">🖥 Audio</button>
     <button id="bInfo">ℹ Infos</button>
   </div>
 </div>
@@ -127,7 +132,7 @@
 let COLS = 24, ROWS = 8;   // modifiables depuis le panneau ⚙
 
 const $ = id => document.getElementById(id);
-const VERSION = '2026-11-21-a';
+const VERSION = '2026-11-21-e';
 
 // ---- Journal (affiché par le bouton ℹ) ----
 const LOG = [];
@@ -164,7 +169,7 @@ poke();
 const PALETTES = {
   "Arc-en-ciel":  t => [220 - 220 * t, 100, 55],
   "Bleu / rose":  t => [225 + 120 * t, 95, 58],
-  "Violet néon":  t => [285 + 25 * t, 100, 52 + 10 * t],
+  "Violet néon":  t => [270 + 25 * t, 100, 52 + 10 * t],
   "Braise":       t => [50 - 50 * t, 100, 52],
   "Vert → rouge": t => [130 - 130 * t, 100, 50],
 };
@@ -333,6 +338,34 @@ function demo(t) {
 }
 
 // ---- Rendu ----
+// Quand les cellules sont très petites (pas de la grille < SIMPLE_BELOW px CSS), le dégradé interne et le reflet
+// ne se voient plus : on dessine des aplats, un seul tracé par rangée. C'est bien plus léger pour le processeur.
+const SIMPLE_BELOW = 9;
+let rowKey = '', rowCols = [];
+function drawFlat() {
+  const key = palSel.value + '|' + ROWS;
+  if (key !== rowKey) { rowKey = key; rowCols = Array.from({ length: ROWS }, (_, r) => hsl(pal(r / (ROWS - 1)))); }
+  const s = pitch * .78, o = (pitch - s) / 2;
+  for (let r = 0; r < ROWS; r++) {            // cellules pleines
+    g.beginPath();
+    let any = false;
+    for (let c = 0; c < COLS; c++) {
+      if (level[c] * ROWS - r >= 1) { g.rect(c * pitch + o, (ROWS - 1 - r) * pitch + o, s, s); any = true; }
+    }
+    if (any) { g.fillStyle = rowCols[r]; g.fill(); }
+  }
+  const one = (c, r, a) => {                  // cellule à opacité propre
+    g.globalAlpha = a; g.fillStyle = rowCols[r];
+    g.fillRect(c * pitch + o, (ROWS - 1 - r) * pitch + o, s, s);
+  };
+  for (let c = 0; c < COLS; c++) {
+    const v = level[c] * ROWS, r = Math.floor(v), a = v - r;
+    if (r < ROWS && a > .04) one(c, r, a);    // cellule partielle au sommet de la colonne
+    const pr = Math.min(ROWS - 1, Math.floor(peak[c] * ROWS));
+    if (pr > v && peak[c] > .05) one(c, pr, .85);   // point de crête
+  }
+  g.globalAlpha = 1;
+}
 let level = new Float32Array(COLS), peak = new Float32Array(COLS), hold = new Float32Array(COLS);
 function frame(ms) {
   const tgt = mode === 'live' ? bands() : demo(ms / 1000);
@@ -342,7 +375,8 @@ function frame(ms) {
     else if (hold[i]-- < 0) peak[i] = Math.max(level[i], peak[i] - .012);
   }
   g.clearRect(0, 0, W, H);
-  for (let c = 0; c < COLS; c++) {
+  if (pitch < SIMPLE_BELOW) drawFlat();
+  else for (let c = 0; c < COLS; c++) {
     const v = level[c] * ROWS;
     for (let r = 0; r < ROWS; r++) {
       const a = Math.min(1, Math.max(0, v - r));
@@ -634,6 +668,7 @@ function infoText() {
     'pistes: ' + tracks.length + ' · index: ' + idx + ' · bibliothèque: ' + (lib ? lib.type : 'aucune'),
     'lecteur: ready=' + player.readyState + ' paused=' + player.paused + ' erreur=' + (player.error ? player.error.code : '-'),
     'écran: ' + innerWidth + 'x' + innerHeight + ' @' + devicePixelRatio,
+    'grille: ' + COLS + '×' + ROWS + ' · cellule ' + pitch.toFixed(1) + ' px · dessin ' + (pitch < SIMPLE_BELOW ? 'simplifié' : 'détaillé') + ' (seuil ' + SIMPLE_BELOW + ' px)',
     navigator.userAgent,
     '--- journal ---', ...LOG].join('\n');
 }
