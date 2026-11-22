@@ -39,8 +39,9 @@
   #infoBox{position:fixed;inset:0;z-index:20;background:#000;display:flex;flex-direction:column}
   #infoBar{display:flex;gap:8px;justify-content:flex-end;padding:8px calc(8px + env(safe-area-inset-right)) 8px 8px}
   #info{flex:1;overflow:auto;margin:0;padding:10px;font:11px/1.4 ui-monospace,monospace;color:#cfc;white-space:pre-wrap;word-break:break-all;user-select:text}
-  #settings{position:fixed;left:0;right:0;bottom:0;z-index:7;display:grid;grid-template-columns:minmax(104px,18%) 1fr 1fr 64px;gap:6px 24px;padding:12px calc(18px + env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));background:#000b;border-top:1px solid #3a3a40}
-  #settings .set{min-width:0}
+  #settings{position:fixed;left:0;right:0;bottom:0;z-index:7;display:grid;grid-template-columns:minmax(92px,14%) repeat(6,1fr) 64px;gap:6px 18px;padding:12px calc(18px + env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));background:#000b;border-top:1px solid #3a3a40}
+  #settings .set{min-width:0;grid-column:span 2}
+  #settings .set.w3{grid-column:span 3}
   #settings .shead{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:#ddd;min-height:32px}
   #settings .sright{display:flex;align-items:center;gap:6px}
   #settings .rst{padding:2px 10px;font-size:16px;line-height:1.4}
@@ -59,11 +60,12 @@
   #settings input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;background:#e9c46a;border:2px solid #000}
   @media (max-width:560px){
     #settings{grid-template-columns:1fr}
+    #settings .set,#settings .set.w3{grid-column:1}
     #settings .sbtns{grid-column:1/-1;grid-row:auto;flex-direction:row;flex-wrap:wrap;justify-content:center}
     #settings .sbtns{gap:8px}
     #settings .sbtns button{width:auto;padding:10px 14px;font-size:14px}
   }
-  #bRot{grid-column:4;grid-row:1 / span 2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:8px 4px}
+  #bRot{grid-column:8;grid-row:1 / span 2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:8px 4px}
   #bRot .ric{font-size:30px;line-height:1}
   #bRot .rtx{display:none;font-size:13px}
   #bRot.on{border-color:#c9a24a;color:#fff;background:#2a2517}
@@ -111,14 +113,18 @@
     <input id="bri" type="range" min="0.2" max="1" step="0.05" value="0.8">
   </div>
   <div class="set">
+    <div class="shead"><span>✺ Halo</span><span class="sright"><span id="haloVal" class="sval"></span><button id="rstHalo" class="rst" title="Valeur par défaut">↺</button></span></div>
+    <input id="halo" type="range" min="0" max="1" step="0.05" value="0.5">
+  </div>
+  <div class="set">
     <div class="shead"><span>◢ Sensibilité</span><span class="sright"><span id="sensVal" class="sval"></span><button id="rstSens" class="rst" title="Valeur par défaut">↺</button></span></div>
     <input id="sens" type="range" min="0.5" max="2" step="0.05" value="1">
   </div>
-  <div class="set">
+  <div class="set w3">
     <div class="shead"><span>↔ Colonnes (X)</span><span class="sright"><span id="colsVal" class="sval"></span><button id="rstCols" class="rst" title="Valeur par défaut">↺</button></span></div>
     <div class="xy"><button id="colsMinus" class="pm">−</button><input id="colsSl" type="range" min="0" max="1000" step="1" value="0"><button id="colsPlus" class="pm">+</button></div>
   </div>
-  <div class="set">
+  <div class="set w3">
     <div class="shead"><span>↕ Lignes (Y)</span><span class="sright"><span id="rowsVal" class="sval"></span><button id="rstRows" class="rst" title="Valeur par défaut">↺</button></span></div>
     <div class="xy"><button id="rowsMinus" class="pm">−</button><input id="rowsSl" type="range" min="0" max="1000" step="1" value="0"><button id="rowsPlus" class="pm">+</button></div>
   </div>
@@ -147,7 +153,7 @@ const SELF_STYLE = (document.querySelector('style') || {}).textContent || '';
 let COLS = 24, ROWS = 8;   // modifiables depuis le panneau ⚙
 
 const $ = id => document.getElementById(id);
-const VERSION = '2026-11-22-a';
+const VERSION = '2026-11-22-c';
 
 // ---- Journal (affiché par le bouton ℹ) ----
 const LOG = [];
@@ -209,6 +215,7 @@ function bindSlider(id, key, def, valId, fmt, rstId) {
   rst.onclick = () => { el.value = def; store.set(key, def); sync(); };
 }
 bindSlider('bri', 'bri', 0.8, 'briVal', fmtBri, 'rstBri');
+bindSlider('halo', 'halo', 0.5, 'haloVal', fmtBri, 'rstHalo');
 bindSlider('sens', 'sens', 1, 'sensVal', fmtSens, 'rstSens');
 
 // Taille de la grille (X = colonnes, Y = lignes) : curseur à échelle progressive (fin pour les petites valeurs),
@@ -226,6 +233,7 @@ function holdRepeat(btn, fn) {
   ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => btn.addEventListener(ev, stop));
   btn.addEventListener('contextmenu', e => e.preventDefault());
 }
+const gridShow = [];
 function bindGrid(key, ids, min, max, def, get, set) {
   const sl = $(ids.slider), out = $(ids.val), rst = $(ids.rst);
   const toS = v => Math.round(1000 * Math.sqrt((v - min) / (max - min)));
@@ -246,6 +254,7 @@ function bindGrid(key, ids, min, max, def, get, set) {
   holdRepeat($(ids.minus), k => apply(get() - k));
   holdRepeat($(ids.plus), k => apply(get() + k));
   show();
+  gridShow.push(show);
 }
 bindGrid('cols', { slider: 'colsSl', val: 'colsVal', rst: 'rstCols', minus: 'colsMinus', plus: 'colsPlus' }, 4, 200, 24, () => COLS, v => { COLS = v; });
 bindGrid('rows', { slider: 'rowsSl', val: 'rowsVal', rst: 'rstRows', minus: 'rowsMinus', plus: 'rowsPlus' }, 2, 100, 8, () => ROWS, v => { ROWS = v; });
@@ -261,6 +270,8 @@ const cv = $('c'), ctx = cv.getContext('2d');
 const led = document.createElement('canvas'), g = led.getContext('2d');
 const glowA = document.createElement('canvas'), ga = glowA.getContext('2d');
 const glowB = document.createElement('canvas'), gb = glowB.getContext('2d');
+const mid1 = document.createElement('canvas'), m1 = mid1.getContext('2d');
+const mid2 = document.createElement('canvas'), m2 = mid2.getContext('2d');
 let pitch = 1, W = 1, H = 1;
 function resize() {
   const dpr = Math.min(devicePixelRatio || 1, 2);
@@ -272,7 +283,10 @@ function resize() {
   cv.style.width = W + 'px'; cv.style.height = H + 'px';
   cv.width = led.width = Math.round(W * dpr);
   cv.height = led.height = Math.round(H * dpr);
-  glowA.width = Math.max(8, cv.width / 6 | 0); glowA.height = Math.max(4, cv.height / 6 | 0);
+  // réductions successives par 2 : une réduction directe par 6 saute des pixels et fait disparaître la lueur de certaines lignes
+  mid1.width = Math.max(8, cv.width / 2 | 0); mid1.height = Math.max(4, cv.height / 2 | 0);
+  mid2.width = Math.max(8, cv.width / 4 | 0); mid2.height = Math.max(4, cv.height / 4 | 0);
+  glowA.width = Math.max(8, cv.width / 8 | 0); glowA.height = Math.max(4, cv.height / 8 | 0);
   glowB.width = Math.max(4, cv.width / 16 | 0); glowB.height = Math.max(2, cv.height / 16 | 0);
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
@@ -287,7 +301,10 @@ $('bRot').classList.toggle('on', rot);
 $('bRot').onclick = () => {
   rot = !rot; store.set('rot', rot ? '1' : '0');
   $('bRot').classList.toggle('on', rot);
-  resize(); pinOrientation();
+  const c = COLS; COLS = clampInt(ROWS, 4, 200, 24); ROWS = clampInt(c, 2, 100, 8);   // X et Y échangés
+  store.set('cols', COLS); store.set('rows', ROWS);
+  gridShow.forEach(f => f());
+  gridChanged(); pinOrientation();
 };
 if (rot) pinOrientation();
 
@@ -419,19 +436,26 @@ function frame(ms) {
     if (pr > v && peak[c] > .05) cell(c * pitch, (ROWS - 1 - pr) * pitch, pr, .85);
   }
   // Lueur : copies réduites (flou bon marché), puis réagrandies en mode additif
-  ga.imageSmoothingQuality = gb.imageSmoothingQuality = 'high';
-  ga.clearRect(0, 0, glowA.width, glowA.height);
-  ga.drawImage(led, 0, 0, glowA.width, glowA.height);
-  gb.clearRect(0, 0, glowB.width, glowB.height);
-  gb.drawImage(glowA, 0, 0, glowB.width, glowB.height);
+  const halo = +$('halo').value;
+  if (halo > 0) {
+    m1.imageSmoothingQuality = m2.imageSmoothingQuality = ga.imageSmoothingQuality = gb.imageSmoothingQuality = 'high';
+    m1.clearRect(0, 0, mid1.width, mid1.height); m1.drawImage(led, 0, 0, mid1.width, mid1.height);
+    m2.clearRect(0, 0, mid2.width, mid2.height); m2.drawImage(mid1, 0, 0, mid2.width, mid2.height);
+    ga.clearRect(0, 0, glowA.width, glowA.height);
+    ga.drawImage(mid2, 0, 0, glowA.width, glowA.height);
+    gb.clearRect(0, 0, glowB.width, glowB.height);
+    gb.drawImage(glowA, 0, 0, glowB.width, glowB.height);
+  }
   const bri = +$('bri').value;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
   ctx.fillStyle = '#09090b'; ctx.fillRect(0, 0, cv.width, cv.height);
   ctx.globalCompositeOperation = 'lighter';
   ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
-  ctx.globalAlpha = bri * .45; ctx.drawImage(glowB, 0, 0, cv.width, cv.height);
-  ctx.globalAlpha = bri * .6;  ctx.drawImage(glowA, 0, 0, cv.width, cv.height);
+  if (halo > 0) {   // halo = 50 % : rendu d'avant ; 100 % : lueur doublée
+    ctx.globalAlpha = Math.min(1, bri * .9 * halo); ctx.drawImage(glowB, 0, 0, cv.width, cv.height);
+    ctx.globalAlpha = Math.min(1, bri * 1.2 * halo);    ctx.drawImage(glowA, 0, 0, cv.width, cv.height);
+  }
   ctx.globalAlpha = bri;       ctx.drawImage(led, 0, 0, cv.width, cv.height);
   ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   requestAnimationFrame(frame);
