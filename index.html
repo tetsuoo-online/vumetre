@@ -33,6 +33,7 @@
   #listFoot{padding:8px;border-top:1px solid #2a2a2e;text-align:center}
   .item{padding:9px 12px;border-bottom:1px solid #1a1a1d;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .item.cur{color:#e9c46a;background:#1a1810}
+  #bUpdate{position:fixed;top:56px;left:50%;transform:translateX(-50%);z-index:6;padding:8px 14px;background:#1b1b1fee;border-color:#c9a24a;color:#e9c46a}
   #toast{position:fixed;left:50%;top:56px;transform:translateX(-50%);background:#000d;border:1px solid #333;border-radius:8px;padding:6px 12px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:30}
   #toast.show{opacity:1}
   #infoBox{position:fixed;inset:0;z-index:20;background:#000;display:flex;flex-direction:column}
@@ -69,7 +70,6 @@
 <canvas id="c"></canvas>
 
 <div id="top" class="bar">
-  <button id="bUpdate" hidden>⟳ Mettre à jour</button>
   <button id="bDir">📁 Dossier</button>
   <button id="bFiles">🎵 Fichiers</button>
   <button id="bResume" hidden>↻ Reprendre</button>
@@ -119,6 +119,7 @@
     <button id="bInfo">ℹ Infos</button>
   </div>
 </div>
+<button id="bUpdate" hidden>⟳ Mettre à jour</button>
 <div id="toast"></div>
 <div id="infoBox" hidden>
   <div id="infoBar"><button id="infoCopy">Copier</button><button id="infoClose">✕ Fermer</button></div>
@@ -128,6 +129,10 @@
 <input id="fileIn" type="file" accept=".mp3,.flac,.m4a,.wav,.ogg,.oga,.opus,.aac" multiple hidden>
 
 <script>
+// Code et styles tels qu'ils ont été chargés : sert à repérer toute modification en ligne (voir checkUpdate)
+const SELF_SCRIPT = document.currentScript ? document.currentScript.textContent : '';
+const SELF_STYLE = (document.querySelector('style') || {}).textContent || '';
+
 // ---- Réglages de la matrice ----
 let COLS = 24, ROWS = 8;   // modifiables depuis le panneau ⚙
 
@@ -160,7 +165,7 @@ let idleT;
 function poke() {
   document.body.classList.remove('idle');
   clearTimeout(idleT);
-  idleT = setTimeout(() => document.body.classList.add('idle'), 5000);
+  idleT = setTimeout(() => { document.body.classList.add('idle'); $('list').classList.remove('open'); }, 5000);   // la playlist se referme aussi
 }
 ['pointerdown', 'pointermove', 'keydown'].forEach(e => addEventListener(e, poke, { passive: true }));
 poke();
@@ -596,6 +601,13 @@ function toggle() {
 $('bNext').onclick = next; $('bPrev').onclick = prev; $('bPlay').onclick = toggle;
 $('bShuf').onclick = () => { shuffle = !shuffle; store.set('shuf', shuffle ? '1' : '0'); $('bShuf').classList.toggle('on', shuffle); };
 $('bList').onclick = () => { $('list').classList.toggle('open'); markCurrent(); };
+// La playlist se referme toute seule après 5 s d'inactivité (voir poke) ou quand on touche en dehors :
+// évite de relancer un morceau par erreur en touchant l'endroit où elle se trouvait
+addEventListener('pointerdown', e => {
+  const l = $('list');
+  if (l.classList.contains('open') && !l.contains(e.target) && !e.target.closest('#bList')) l.classList.remove('open');
+});
+$('items').addEventListener('scroll', poke, { passive: true });   // faire défiler la liste compte comme une activité
 player.onended = next;
 player.onerror = () => {
   const c = player.error && player.error.code;
@@ -670,6 +682,7 @@ function infoText() {
     'lecteur: ready=' + player.readyState + ' paused=' + player.paused + ' erreur=' + (player.error ? player.error.code : '-'),
     'écran: ' + innerWidth + 'x' + innerHeight + ' @' + devicePixelRatio,
     'grille: ' + COLS + '×' + ROWS + ' · cellule ' + pitch.toFixed(1) + ' px · dessin ' + (pitch < SIMPLE_BELOW ? 'simplifié' : 'détaillé') + ' (seuil ' + SIMPLE_BELOW + ' px)',
+    'mise à jour: dernière vérification ' + lastCheck + ' · ' + (updatePending ? 'disponible' : 'à jour'),
     navigator.userAgent,
     '--- journal ---', ...LOG].join('\n');
 }
@@ -690,23 +703,39 @@ addEventListener('pointerdown', e => {
 ['bMic', 'bSys', 'bInfo'].forEach(id => $(id).addEventListener('click', closeSettings));
 log('démarrage v' + VERSION);
 
-// ---- Détection de mise à jour : compare la version en ligne à celle qui tourne ----
+// ---- Détection de mise à jour : compare le code en ligne (script + styles) à celui qui tourne ----
+// Le numéro VERSION n'intervient plus : toute modification du script ou des styles est détectée, même sans changer VERSION.
+// (Une modification limitée au HTML du corps de page, boutons ou textes, n'est pas vue : change alors VERSION.)
+// Vérification au lancement, au retour sur l'app, toutes les 2 min tant qu'elle est visible, et à la reconnexion.
+// Une requête HEAD légère évite de retélécharger la page tant que rien n'a changé.
+const norm = s => s.replace(/\r\n?/g, '\n');
+let seenTag = null, checking = false, lastCheck = 'jamais', updatePending = false;
 async function checkUpdate() {
+  if (checking || document.visibilityState !== 'visible' || !SELF_SCRIPT) return;
+  checking = true;
   try {
-    const r = await fetch('index.html?nocache=' + Date.now(), { cache: 'no-store' });
-    const m = (await r.text()).match(/const VERSION = '([^']+)'/);
-    if (m && m[1] !== VERSION) {
-      $('bUpdate').hidden = false;
-      $('bUpdate').textContent = '⟳ Mettre à jour';
-      say('Mise à jour disponible', 6000); log('mise à jour disponible: ' + m[1]);
+    const url = 'index.html?nocache=' + Date.now();
+    let tag = null;
+    try { const h = await fetch(url, { method: 'HEAD', cache: 'no-store' }); tag = h.headers.get('etag') || h.headers.get('last-modified'); } catch {}
+    if (tag && tag === seenTag) { lastCheck = new Date().toLocaleTimeString() + ' (inchangé)'; return; }
+    const html = await (await fetch(url, { cache: 'no-store' })).text();
+    const sc = html.match(/<script>([\s\S]*?)<\/script>/), st = html.match(/<style>([\s\S]*?)<\/style>/);
+    if (!sc || !st) { log('mise à jour: page distante illisible'); return; }
+    seenTag = tag;
+    lastCheck = new Date().toLocaleTimeString();
+    if (norm(sc[1]) !== norm(SELF_SCRIPT) || norm(st[1]) !== norm(SELF_STYLE)) {
+      updatePending = true; $('bUpdate').hidden = false; log('mise à jour disponible');
     }
   } catch (e) { log('vérification de mise à jour impossible'); }
+  finally { checking = false; }
 }
 $('bUpdate').onclick = async () => {
   try { const reg = await navigator.serviceWorker.getRegistration(); if (reg) await reg.update(); } catch {}
   location.reload();
 };
 setTimeout(checkUpdate, 3000);
+setInterval(checkUpdate, 120000);
+addEventListener('online', checkUpdate);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkUpdate(); });
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(console.warn);
