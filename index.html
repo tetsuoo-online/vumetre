@@ -39,8 +39,9 @@
   #infoBox{position:fixed;inset:0;z-index:20;background:#000;display:flex;flex-direction:column}
   #infoBar{display:flex;gap:8px;justify-content:flex-end;padding:8px calc(8px + env(safe-area-inset-right)) 8px 8px}
   #info{flex:1;overflow:auto;margin:0;padding:10px;font:11px/1.4 ui-monospace,monospace;color:#cfc;white-space:pre-wrap;word-break:break-all;user-select:text}
-  #settings{position:fixed;left:0;right:0;bottom:0;z-index:7;display:grid;grid-template-columns:minmax(104px,18%) 1fr 1fr 64px;gap:6px 24px;padding:12px calc(18px + env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));background:#000b;border-top:1px solid #3a3a40}
-  #settings .set{min-width:0}
+  #settings{position:fixed;left:0;right:0;bottom:0;z-index:7;display:grid;grid-template-columns:54px minmax(88px,13%) repeat(6,1fr) 64px;gap:6px 16px;padding:12px calc(18px + env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));background:#000b;border-top:1px solid #3a3a40}
+  #settings .set{min-width:0;grid-column:span 2}
+  #settings .set.w3{grid-column:span 3}
   #settings .shead{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:#ddd;min-height:32px}
   #settings .sright{display:flex;align-items:center;gap:6px}
   #settings .rst{padding:2px 10px;font-size:16px;line-height:1.4}
@@ -49,7 +50,7 @@
   #settings .xy input[type=range]{flex:1;min-width:0;width:auto}
   #settings .pm{width:40px;height:40px;padding:0;font-size:22px;line-height:1;flex:none;touch-action:manipulation}
   #settings .sval{color:#e9c46a;font-variant-numeric:tabular-nums}
-  #settings .sbtns{grid-column:1;grid-row:1 / span 2;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:16px}
+  #settings .sbtns{grid-column:2;grid-row:1 / span 2;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:10px}
   #settings .sbtns button{width:64px;padding:8px 4px;font-size:13px;white-space:nowrap}
   #settings input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:40px;margin:0;background:transparent}
   #settings input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:4px;background:linear-gradient(to right,#c9a24a var(--p,50%),#3a3a40 var(--p,50%))}
@@ -59,11 +60,15 @@
   #settings input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;background:#e9c46a;border:2px solid #000}
   @media (max-width:560px){
     #settings{grid-template-columns:1fr}
+    #settings .set,#settings .set.w3{grid-column:1}
+    #bLang{grid-column:1;grid-row:auto}
     #settings .sbtns{grid-column:1/-1;grid-row:auto;flex-direction:row;flex-wrap:wrap;justify-content:center}
     #settings .sbtns{gap:8px}
     #settings .sbtns button{width:auto;padding:10px 14px;font-size:14px}
   }
-  #bRot{grid-column:4;grid-row:1 / span 2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:8px 4px}
+  #bLang{grid-column:1;grid-row:1 / span 2;align-self:center;justify-self:center;padding:6px;line-height:0}
+  #flagImg{width:36px;height:24px;image-rendering:pixelated;display:block}
+  #bRot{grid-column:9;grid-row:1 / span 2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:8px 4px}
   #bRot .ric{font-size:30px;line-height:1}
   #bRot .rtx{display:none;font-size:13px}
   #bRot.on{border-color:#c9a24a;color:#fff;background:#2a2517}
@@ -79,8 +84,8 @@
 <canvas id="c"></canvas>
 
 <div id="top" class="bar">
-  <button id="bDir">📁 Dossier</button>
-  <button id="bFiles">🎵 Fichiers</button>
+  <button id="bDir" data-i18n="dir">📁 Dossier</button>
+  <button id="bFiles" data-i18n="files">🎵 Fichiers</button>
   <button id="bResume" hidden>↻ Reprendre</button>
   <select id="pal"></select>
   <button id="bSet">⚙</button>
@@ -103,36 +108,41 @@
 
 <div id="list">
   <div id="items"></div>
-  <div id="listFoot" hidden><button id="bClear">🗑 Vider la playlist</button></div>
+  <div id="listFoot" hidden><button id="bClear" data-i18n="clear">🗑 Vider la playlist</button></div>
 </div>
 <div id="settings" hidden>
   <div class="set">
-    <div class="shead"><span>☀ Luminosité</span><span class="sright"><span id="briVal" class="sval"></span><button id="rstBri" class="rst" title="Valeur par défaut">↺</button></span></div>
+    <div class="shead"><span data-i18n="bri">☀ Luminosité</span><span class="sright"><span id="briVal" class="sval"></span><button id="rstBri" class="rst" title="Valeur par défaut">↺</button></span></div>
     <input id="bri" type="range" min="0.2" max="1" step="0.05" value="0.8">
   </div>
   <div class="set">
-    <div class="shead"><span>◢ Sensibilité</span><span class="sright"><span id="sensVal" class="sval"></span><button id="rstSens" class="rst" title="Valeur par défaut">↺</button></span></div>
+    <div class="shead"><span data-i18n="blur">◌ Flouté</span><span class="sright"><span id="flouVal" class="sval"></span><button id="rstFlou" class="rst" title="Valeur par défaut">↺</button></span></div>
+    <input id="flou" type="range" min="0" max="1" step="0.05" value="0.5">
+  </div>
+  <div class="set">
+    <div class="shead"><span data-i18n="sens">◢ Sensibilité</span><span class="sright"><span id="sensVal" class="sval"></span><button id="rstSens" class="rst" title="Valeur par défaut">↺</button></span></div>
     <input id="sens" type="range" min="0.5" max="2" step="0.05" value="1">
   </div>
-  <div class="set">
-    <div class="shead"><span>↔ Colonnes (X)</span><span class="sright"><span id="colsVal" class="sval"></span><button id="rstCols" class="rst" title="Valeur par défaut">↺</button></span></div>
+  <div class="set w3">
+    <div class="shead"><span data-i18n="cols">↔ Colonnes (X)</span><span class="sright"><span id="colsVal" class="sval"></span><button id="rstCols" class="rst" title="Valeur par défaut">↺</button></span></div>
     <div class="xy"><button id="colsMinus" class="pm">−</button><input id="colsSl" type="range" min="0" max="1000" step="1" value="0"><button id="colsPlus" class="pm">+</button></div>
   </div>
-  <div class="set">
-    <div class="shead"><span>↕ Lignes (Y)</span><span class="sright"><span id="rowsVal" class="sval"></span><button id="rstRows" class="rst" title="Valeur par défaut">↺</button></span></div>
+  <div class="set w3">
+    <div class="shead"><span data-i18n="rows">↕ Lignes (Y)</span><span class="sright"><span id="rowsVal" class="sval"></span><button id="rstRows" class="rst" title="Valeur par défaut">↺</button></span></div>
     <div class="xy"><button id="rowsMinus" class="pm">−</button><input id="rowsSl" type="range" min="0" max="1000" step="1" value="0"><button id="rowsPlus" class="pm">+</button></div>
   </div>
+  <button id="bLang" title="Langue / Language"><img id="flagImg" width="24" height="16" alt="FR"></button>
   <div class="sbtns">
     <button id="bMic">🎤 Mic</button>
     <button id="bSys">🖥 Audio</button>
-    <button id="bInfo">ℹ Infos</button>
+    <button id="bInfo" data-i18n="info">ℹ Infos</button>
   </div>
-  <button id="bRot" title="Rotation de la grille de 90° (anti-horaire)"><span class="ric">⟲</span><span class="rtx">Rotation</span></button>
+  <button id="bRot" data-i18n-title="rotTitle" title="Rotation de la grille de 90° (anti-horaire)"><span class="ric">⟲</span><span class="rtx" data-i18n="rotTxt">Rotation</span></button>
 </div>
-<button id="bUpdate" hidden>⟳ Mettre à jour</button>
+<button id="bUpdate" data-i18n="update" hidden>⟳ Mettre à jour</button>
 <div id="toast"></div>
 <div id="infoBox" hidden>
-  <div id="infoBar"><button id="infoCopy">Copier</button><button id="infoClose">✕ Fermer</button></div>
+  <div id="infoBar"><button id="infoCopy" data-i18n="copy">Copier</button><button id="infoClose" data-i18n="close">✕ Fermer</button></div>
   <pre id="info"></pre>
 </div>
 <audio id="player" preload="auto"></audio>
@@ -147,7 +157,7 @@ const SELF_STYLE = (document.querySelector('style') || {}).textContent || '';
 let COLS = 24, ROWS = 8;   // modifiables depuis le panneau ⚙
 
 const $ = id => document.getElementById(id);
-const VERSION = '2026-11-22-d';
+const VERSION = '2026-11-22-j';
 
 // ---- Journal (affiché par le bouton ℹ) ----
 const LOG = [];
@@ -165,6 +175,191 @@ const store = {
   set: (k, v) => { try { localStorage.setItem('vu_' + k, v); } catch {} },
 };
 let rot = store.get('rot', '0') === '1';   // grille tournée de 90° anti-horaire
+
+// ---- Langue (FR / EN) : drapeau-bouton dans les réglages ----
+const FLAGS = { fr: 'data:image/gif;base64,R0lGODdhGAAQAKEAAAgAEP////8hAAAY/ywAAAAAGAAQAEACPISPqTjtE6KMolphnpvz2qxBHOVhQCiOpYmOpAdqbrDGz1yfIV7am5trAXs62RBWvB0vvgYPKVQRF1RqAQA7', en: 'data:image/gif;base64,R0lGODdhGAAQAKoAAP///xhr//8hEAAAAO8AAAAA1ggAEO//9ywAAAAAGAAQAEADbDi23P4MyEknuRiPEQLw4OdVUmFupUSUx3WYhbVuYf2RVKHYNnX8QAUOQGgVVSsATEgswYwvGExC61ivAYF2yxVUsdcu98QBh7tSncF81mY0BjHXBaz/FN0mABpDljYCfk8uaRYKG4iJiouICQA7' };
+const I18N = {
+  fr: {
+    "dir": "📁 Dossier",
+    "files": "🎵 Fichiers",
+    "clear": "🗑 Vider la playlist",
+    "bri": "☀ Luminosité",
+    "blur": "◌ Flouté",
+    "sens": "◢ Sensibilité",
+    "cols": "↔ Colonnes (X)",
+    "rows": "↕ Lignes (Y)",
+    "info": "ℹ Infos",
+    "rotTxt": "Rotation",
+    "update": "⟳ Mettre à jour",
+    "copy": "Copier",
+    "close": "✕ Fermer",
+    "rotTitle": "Rotation de la grille de 90° (anti-horaire)",
+    "dflt": "Valeur par défaut",
+    "demo": "Démo : choisis une source",
+    "mic": "Micro",
+    "sys": "Audio système",
+    "cleared": "Playlist vidée",
+    "noaudio": "Aucune piste audio : coche « Partager l'audio ».",
+    "denied": "Accès refusé ou indisponible",
+    "nTracks": "{0} piste(s)",
+    "noSave": "Bibliothèque non mémorisable ici",
+    "dirFail": "Dossier impossible ({0}) : essaie « Fichiers »",
+    "pickClosed": "Le sélecteur s'est fermé aussitôt : essaie « Fichiers »",
+    "advRefused": "Sélecteur avancé refusé : mode simple",
+    "advUnavail": "Sélecteur avancé indisponible ({0})",
+    "sessionOnly": "Sélection valable pour cette session seulement",
+    "reloaded": "Bibliothèque rechargée",
+    "permDenied": "Autorisation refusée",
+    "permLost": "Autorisation perdue : appuie sur « Reprendre »",
+    "blocked": "Lecture bloquée par le navigateur : appuie sur ▶",
+    "playFail": "Lecture impossible ({0}, {1}) : {2}",
+    "playerErr": "Erreur du lecteur (code {0})",
+    "copied": "Copié",
+    "nFiles": "{0} fichiers",
+    "p0": "Arc-en-ciel",
+    "p1": "Bleu / rose",
+    "p2": "Bleu",
+    "p3": "Violet néon",
+    "p4": "Braise",
+    "p5": "Vert → rouge",
+    "i_version": "version {0}",
+    "i_display": "affichage: {0} · sécurisé: {1}",
+    "i_browser": "navigateur",
+    "i_apiDir": "API dossier: {0} · API fichiers: {1}",
+    "i_sw": "service worker: {0}",
+    "i_swOn": "actif",
+    "i_swOff": "aucun",
+    "i_audio": "audio: {0} · source: {1}",
+    "i_notCreated": "non créé",
+    "i_tracks": "pistes: {0} · index: {1} · bibliothèque: {2}",
+    "i_none": "aucune",
+    "i_player": "lecteur: ready={0} paused={1} erreur={2}",
+    "i_screen": "écran: {0}x{1} @{2}",
+    "i_rot": "rotation: {0}",
+    "i_rotOn": "90° anti-horaire",
+    "i_rotOff": "aucune",
+    "i_grid": "grille: {0}×{1} · cellule {2} px · dessin {3} (seuil {4} px)",
+    "i_simple": "simplifié",
+    "i_detail": "détaillé",
+    "i_upd": "mise à jour: dernière vérification {0} · {1}",
+    "i_never": "jamais",
+    "i_unchanged": "(inchangé)",
+    "i_avail": "disponible",
+    "i_uptodate": "à jour",
+    "i_journal": "--- journal ---",
+    "l_orient": "orientation verrouillée",
+    "l_permDenied": "bibliothèque: permission refusée",
+    "l_libN": "bibliothèque: {0} pistes",
+    "l_dirAsk": "dossier: sélecteur demandé",
+    "l_dirOk": "dossier: choisi après {0}",
+    "l_dirErr": "dossier: {0} après {1} : {2}",
+    "l_filesClick": "fichiers: clic, showOpenFilePicker={0}",
+    "l_filesOk": "fichiers: {0} reçu(s) après {1}",
+    "l_filesErr": "fichiers: {0} après {1} : {2}",
+    "l_fallback": "repli input: {0} fichier(s)",
+    "l_playOk": "lecture: démarrée",
+    "l_playFail": "lecture: échec ({0}) {1} {2}",
+    "l_playerErr": "lecteur: erreur {0} {1}",
+    "l_start": "démarrage v{0}",
+    "l_remoteBad": "mise à jour: page distante illisible",
+    "l_updAvail": "mise à jour disponible",
+    "l_updFail": "vérification de mise à jour impossible"
+},
+  en: {
+    "dir": "📁 Folder",
+    "files": "🎵 Files",
+    "clear": "🗑 Clear playlist",
+    "bri": "☀ Brightness",
+    "blur": "◌ Blur",
+    "sens": "◢ Sensitivity",
+    "cols": "↔ Columns (X)",
+    "rows": "↕ Rows (Y)",
+    "info": "ℹ Info",
+    "rotTxt": "Rotate",
+    "update": "⟳ Update",
+    "copy": "Copy",
+    "close": "✕ Close",
+    "rotTitle": "Rotate the grid 90° (counter-clockwise)",
+    "dflt": "Default value",
+    "demo": "Demo: choose a source",
+    "mic": "Microphone",
+    "sys": "System audio",
+    "cleared": "Playlist cleared",
+    "noaudio": "No audio track: tick \"Share audio\".",
+    "denied": "Access denied or unavailable",
+    "nTracks": "{0} track(s)",
+    "noSave": "Library can't be saved here",
+    "dirFail": "Folder unavailable ({0}): try \"Files\"",
+    "pickClosed": "The picker closed right away: try \"Files\"",
+    "advRefused": "Advanced picker refused: simple mode",
+    "advUnavail": "Advanced picker unavailable ({0})",
+    "sessionOnly": "Selection valid for this session only",
+    "reloaded": "Library reloaded",
+    "permDenied": "Permission denied",
+    "permLost": "Permission lost: tap \"Resume\"",
+    "blocked": "Playback blocked by the browser: tap ▶",
+    "playFail": "Cannot play ({0}, {1}): {2}",
+    "playerErr": "Player error (code {0})",
+    "copied": "Copied",
+    "nFiles": "{0} files",
+    "p0": "Rainbow",
+    "p1": "Blue / pink",
+    "p2": "Blue",
+    "p3": "Neon violet",
+    "p4": "Ember",
+    "p5": "Green → red",
+    "i_version": "version {0}",
+    "i_display": "display: {0} · secure: {1}",
+    "i_browser": "browser",
+    "i_apiDir": "folder API: {0} · files API: {1}",
+    "i_sw": "service worker: {0}",
+    "i_swOn": "active",
+    "i_swOff": "none",
+    "i_audio": "audio: {0} · source: {1}",
+    "i_notCreated": "not created",
+    "i_tracks": "tracks: {0} · index: {1} · library: {2}",
+    "i_none": "none",
+    "i_player": "player: ready={0} paused={1} error={2}",
+    "i_screen": "screen: {0}x{1} @{2}",
+    "i_rot": "rotation: {0}",
+    "i_rotOn": "90° counter-clockwise",
+    "i_rotOff": "none",
+    "i_grid": "grid: {0}×{1} · cell {2} px · drawing {3} (threshold {4} px)",
+    "i_simple": "simplified",
+    "i_detail": "detailed",
+    "i_upd": "update: last check {0} · {1}",
+    "i_never": "never",
+    "i_unchanged": "(unchanged)",
+    "i_avail": "available",
+    "i_uptodate": "up to date",
+    "i_journal": "--- log ---",
+    "l_orient": "orientation locked",
+    "l_permDenied": "library: permission denied",
+    "l_libN": "library: {0} tracks",
+    "l_dirAsk": "folder: picker requested",
+    "l_dirOk": "folder: chosen after {0}",
+    "l_dirErr": "folder: {0} after {1} : {2}",
+    "l_filesClick": "files: click, showOpenFilePicker={0}",
+    "l_filesOk": "files: {0} received after {1}",
+    "l_filesErr": "files: {0} after {1} : {2}",
+    "l_fallback": "input fallback: {0} file(s)",
+    "l_playOk": "playback: started",
+    "l_playFail": "playback: failed ({0}) {1} {2}",
+    "l_playerErr": "player: error {0} {1}",
+    "l_start": "startup v{0}",
+    "l_remoteBad": "update: remote page unreadable",
+    "l_updAvail": "update available",
+    "l_updFail": "update check failed"
+},
+};
+let lang = store.get('lang', 'fr') === 'en' ? 'en' : 'fr';
+const tr = (k, ...a) => {
+  let s = (I18N[lang][k] ?? I18N.fr[k] ?? k);
+  a.forEach((v, i) => { s = s.split('{' + i + '}').join(v); });
+  return s;
+};
+let titleKey = 'demo';   // clé du texte affiché dans la barre du bas (null : titre d'un morceau)
+function setTitle(k) { titleKey = k; $('title').textContent = tr(k); }
 
 // ---- Utilitaires UI ----
 let toastT;
@@ -209,13 +404,14 @@ function bindSlider(id, key, def, valId, fmt, rstId) {
   rst.onclick = () => { el.value = def; store.set(key, def); sync(); };
 }
 bindSlider('bri', 'bri', 0.8, 'briVal', fmtBri, 'rstBri');
+bindSlider('flou', 'flou', 0.5, 'flouVal', fmtBri, 'rstFlou');
 bindSlider('sens', 'sens', 1, 'sensVal', fmtSens, 'rstSens');
 
 // Taille de la grille (X = colonnes, Y = lignes) : curseur à échelle progressive (fin pour les petites valeurs),
 // boutons − / + pour le réglage précis (maintenir appuyé = répétition accélérée), ↺ pour la valeur par défaut
 const clampInt = (v, lo, hi, d) => { v = Math.round(+v); return Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d; };
 COLS = clampInt(store.get('cols', 24), 4, 200, 24);
-ROWS = clampInt(store.get('rows', 8), 2, 100, 8);
+ROWS = clampInt(store.get('rows', 10), 2, 100, 10);
 function holdRepeat(btn, fn) {
   let t, n = 0;
   const stop = () => { clearTimeout(t); n = 0; };
@@ -250,7 +446,7 @@ function bindGrid(key, ids, min, max, def, get, set) {
   gridShow.push(show);
 }
 bindGrid('cols', { slider: 'colsSl', val: 'colsVal', rst: 'rstCols', minus: 'colsMinus', plus: 'colsPlus' }, 4, 200, 24, () => COLS, v => { COLS = v; });
-bindGrid('rows', { slider: 'rowsSl', val: 'rowsVal', rst: 'rstRows', minus: 'rowsMinus', plus: 'rowsPlus' }, 2, 100, 8, () => ROWS, v => { ROWS = v; });
+bindGrid('rows', { slider: 'rowsSl', val: 'rowsVal', rst: 'rstRows', minus: 'rowsMinus', plus: 'rowsPlus' }, 2, 100, 10, () => ROWS, v => { ROWS = v; });
 function gridChanged() {   // nouvelle taille : on réalloue les niveaux et on redimensionne le canevas
   level = new Float32Array(COLS); peak = new Float32Array(COLS); hold = new Float32Array(COLS);
   resize();
@@ -282,14 +478,14 @@ addEventListener('resize', resize); resize();
 function pinOrientation() {
   try {
     const o = screen.orientation;
-    if (o && o.lock) o.lock(rot ? 'landscape-primary' : 'landscape').then(() => log('orientation verrouillée'), e => log('orientation: ' + e.name));
+    if (o && o.lock) o.lock(rot ? 'landscape-primary' : 'landscape').then(() => log(tr('l_orient')), e => log('orientation: ' + e.name));
   } catch (e) { log('orientation: ' + e); }
 }
 $('bRot').classList.toggle('on', rot);
 $('bRot').onclick = () => {
   rot = !rot; store.set('rot', rot ? '1' : '0');
   $('bRot').classList.toggle('on', rot);
-  const c = COLS; COLS = clampInt(ROWS, 4, 200, 24); ROWS = clampInt(c, 2, 100, 8);   // X et Y échangés
+  const c = COLS; COLS = clampInt(ROWS, 4, 200, 24); ROWS = clampInt(c, 2, 100, 10);   // X et Y échangés
   store.set('cols', COLS); store.set('rows', ROWS);
   gridShow.forEach(f => f());
   gridChanged(); pinOrientation();
@@ -338,21 +534,21 @@ async function startLive(getter, label) {
     const st = await getter();
     if (!st.getAudioTracks().length) {
       st.getTracks().forEach(t => t.stop());
-      say("Aucune piste audio : coche « Partager l'audio »."); return;
+      say(tr('noaudio')); return;
     }
     stopLive(); player.pause();
     liveStream = st;
     liveSrc = actx.createMediaStreamSource(new MediaStream(st.getAudioTracks()));
     liveSrc.connect(analyser);
     outGain.gain.value = 0;               // pas de retour dans les enceintes (larsen)
-    mode = 'live'; say(label);
-    $('title').textContent = label; $('time').textContent = '';
-  } catch (e) { console.warn(e); say('Accès refusé ou indisponible'); }
+    mode = 'live'; say(tr(label));
+    setTitle(label); $('time').textContent = '';
+  } catch (e) { console.warn(e); say(tr('denied')); }
 }
 $('bMic').onclick = () => startLive(() => navigator.mediaDevices.getUserMedia({
-  audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }), 'Micro');
+  audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }), 'mic');
 if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) $('bSys').hidden = true;
-$('bSys').onclick = () => startLive(() => navigator.mediaDevices.getDisplayMedia({ video: true, audio: true }), 'Audio système');
+$('bSys').onclick = () => startLive(() => navigator.mediaDevices.getDisplayMedia({ video: true, audio: true }), 'sys');
 
 function bands() {
   const out = new Float32Array(COLS), nyq = actx.sampleRate / 2, n = data.length;
@@ -423,22 +619,18 @@ function frame(ms) {
     const pr = Math.min(ROWS - 1, Math.floor(peak[c] * ROWS));
     if (pr > v && peak[c] > .05) cell(c * pitch, (ROWS - 1 - pr) * pitch, pr, .85);
   }
-  // Lueur : copies réduites (flou bon marché), puis réagrandies en mode additif
-  ga.imageSmoothingQuality = gb.imageSmoothingQuality = 'high';
-  ga.clearRect(0, 0, glowA.width, glowA.height);
-  ga.drawImage(led, 0, 0, glowA.width, glowA.height);
-  gb.clearRect(0, 0, glowB.width, glowB.height);
-  gb.drawImage(glowA, 0, 0, glowB.width, glowB.height);
-  const bri = +$('bri').value;
+  // Rendu « v1 » : vrai flou plein écran (ctx.filter), plus fidèle mais plus lourd
+  const bri = +$('bri').value, k = cv.width / W;   // k = pixels device par pixel CSS
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; ctx.filter = 'none';
   ctx.fillStyle = '#09090b'; ctx.fillRect(0, 0, cv.width, cv.height);
   ctx.globalCompositeOperation = 'lighter';
-  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
-  ctx.globalAlpha = bri * .45; ctx.drawImage(glowB, 0, 0, cv.width, cv.height);
-  ctx.globalAlpha = bri * .6;  ctx.drawImage(glowA, 0, 0, cv.width, cv.height);
-  ctx.globalAlpha = bri;       ctx.drawImage(led, 0, 0, cv.width, cv.height);
-  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  const fl = +$('flou').value;   // 0 = net et rapide (aucun filtre) mais même luminosité : les deux passes restent dessinées
+  ctx.globalAlpha = bri * .9; ctx.filter = fl > 0 ? 'blur(' + (pitch * .3 * fl * k).toFixed(1) + 'px)' : 'none';   // lueur
+  ctx.drawImage(led, 0, 0, cv.width, cv.height);
+  ctx.globalAlpha = bri; ctx.filter = fl > 0 ? 'blur(' + (pitch * .06 * fl * k).toFixed(1) + 'px)' : 'none';       // adoucit les cellules
+  ctx.drawImage(led, 0, 0, cv.width, cv.height);
+  ctx.filter = 'none'; ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
@@ -477,15 +669,15 @@ let loadSeq = 0;   // un nouveau chargement ou « Vider » annule celui qui est 
 async function loadLibrary(ask) {
   const seq = ++loadSeq, cur = lib;
   const hs = cur.type === 'dir' ? [cur.handle] : cur.handles;
-  for (const h of hs) if (!(await ensurePerm(h, ask))) { log('bibliothèque: permission refusée'); return false; }
+  for (const h of hs) if (!(await ensurePerm(h, ask))) { log(tr('l_permDenied')); return false; }
   const out = [];
   if (cur.type === 'dir') await scanDir(cur.handle, out, '');
   else for (const h of cur.handles) out.push({ name: h.name, path: '', get: () => h.getFile() });
   if (seq !== loadSeq) return null;   // annulé entre-temps
   out.sort((a, b) => (a.path + a.name).localeCompare(b.path + b.name, undefined, { numeric: true, sensitivity: 'base' }));
   tracks = out; idx = -1; renderList(); $('bResume').hidden = true;
-  log('bibliothèque: ' + tracks.length + ' pistes');
-  say(tracks.length + ' piste(s)');
+  log(tr('l_libN', tracks.length));
+  say(tr('nTracks', tracks.length));
   return true;
 }
 function syncClear() { $('listFoot').hidden = !(tracks.length || lib); }
@@ -499,14 +691,14 @@ async function clearLibrary() {
   try { await DB.set('lib', null); } catch (e) { console.warn(e); }
   if (!liveSrc) mode = 'demo';
   renderList(); $('bResume').hidden = true;
-  $('seek').value = 0; $('time').textContent = ''; $('title').textContent = 'Playlist vidée';
+  $('seek').value = 0; $('time').textContent = ''; setTitle('cleared');
   $('list').classList.remove('open');
-  say('Playlist vidée');
+  say(tr('cleared'));
 }
 $('bClear').onclick = clearLibrary;
 async function setLibrary(l) {
   lib = l; syncClear();
-  try { await DB.set('lib', l); } catch (e) { console.warn(e); say('Bibliothèque non mémorisable ici'); }
+  try { await DB.set('lib', l); } catch (e) { console.warn(e); say(tr('noSave')); }
   return loadLibrary(true);
 }
 const isAbort = e => e && e.name === 'AbortError';
@@ -515,58 +707,61 @@ if (!('showDirectoryPicker' in window)) $('bDir').hidden = true;
 $('bDir').onclick = async () => {
   const t0 = performance.now(), ms = () => Math.round(performance.now() - t0) + ' ms';
   try {
-    reenter = !!document.fullscreenElement; log('dossier: sélecteur demandé');
+    reenter = !!document.fullscreenElement; log(tr('l_dirAsk'));
     const h = await showDirectoryPicker({ mode: 'read' });
-    log('dossier: choisi après ' + ms());
+    log(tr('l_dirOk', ms()));
     if (await setLibrary({ type: 'dir', handle: h }) && tracks.length) play(0);
   } catch (e) {
-    log('dossier: ' + (e && e.name) + ' après ' + ms() + ' : ' + (e && e.message));
-    if (!isAbort(e)) { console.warn(e); say('Dossier impossible (' + (e && e.name) + ') : essaie « Fichiers »', 5000); }
-    else if (performance.now() - t0 < 800) say("Le sélecteur s'est fermé aussitôt : essaie « Simple »", 5000);
+    log(tr('l_dirErr', e && e.name, ms(), e && e.message));
+    if (!isAbort(e)) { console.warn(e); say(tr('dirFail', e && e.name), 5000); }
+    else if (performance.now() - t0 < 800) say(tr('pickClosed'), 5000);
   }
 };
 $('bFiles').onclick = async () => {
   const t0 = performance.now(), ms = () => Math.round(performance.now() - t0) + ' ms';
   reenter = !!document.fullscreenElement;
-  log('fichiers: clic, showOpenFilePicker=' + ('showOpenFilePicker' in window));
+  log(tr('l_filesClick', 'showOpenFilePicker' in window));
   if ('showOpenFilePicker' in window) {
     try {
       const hs = await showOpenFilePicker({ multiple: true, types: [{ description: 'Audio', accept: { 'audio/*': AUDIO_EXT } }] });
-      log('fichiers: ' + hs.length + ' reçu(s) après ' + ms());
+      log(tr('l_filesOk', hs.length, ms()));
       if (await setLibrary({ type: 'files', handles: hs }) && tracks.length) play(0);
       return;
     } catch (e) {
-      log('fichiers: ' + (e && e.name) + ' après ' + ms() + ' : ' + (e && e.message));
+      log(tr('l_filesErr', e && e.name, ms(), e && e.message));
       if (isAbort(e)) {
         if (performance.now() - t0 > 800) return;          // annulation normale par l'utilisateur
-        say("Sélecteur avancé refusé : mode simple", 4000);  // fermé aussitôt : on bascule sur le mode simple
-      } else { console.warn(e); say('Sélecteur avancé indisponible (' + (e && e.name) + ')', 5000); }
+        say(tr('advRefused'), 4000);  // fermé aussitôt : on bascule sur le mode simple
+      } else { console.warn(e); say(tr('advUnavail', e && e.name), 5000); }
     }
   }
   $('fileIn').click();     // repli : sélection non mémorisée
 };
 $('fileIn').onchange = e => {
-  log('repli input: ' + e.target.files.length + ' fichier(s)');
+  log(tr('l_fallback', e.target.files.length));
   const fs = [...e.target.files].filter(f => AUDIO_RE.test(f.name) || f.type.startsWith('audio/'));
   if (!fs.length) return;
   fs.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
   tracks = fs.map(f => ({ name: f.name, path: '', get: async () => f }));
   idx = -1; renderList(); play(0);
-  say('Sélection valable pour cette session seulement');
+  say(tr('sessionOnly'));
   e.target.value = '';
 };
 $('bResume').onclick = async () => {
   if (!lib) return;
-  if (await loadLibrary(true)) { say('Bibliothèque rechargée'); }
-  else say('Autorisation refusée');
+  if (await loadLibrary(true)) { say(tr('reloaded')); }
+  else say(tr('permDenied'));
 };
+function renderResume() {
+  if (lib) $('bResume').textContent = '↻ ' + (lib.type === 'dir' ? lib.handle.name : tr('nFiles', lib.handles.length));
+}
 (async () => {
   try { lib = await DB.get('lib'); } catch {}
   if (!lib) return;
   const first = lib;
   if ((await loadLibrary(false)) === false && lib === first) {
     $('bResume').hidden = false;
-    $('bResume').textContent = '↻ ' + (lib.type === 'dir' ? lib.handle.name : lib.handles.length + ' fichiers');
+    renderResume();
   }
   syncClear();
 })();
@@ -605,19 +800,19 @@ async function play(i) {
     curUrl = URL.createObjectURL(f);
     player.src = curUrl;
     stage = 'lecture';
-    await player.play(); log('lecture: démarrée');
-    $('title').textContent = base(t.name);
+    await player.play(); log(tr('l_playOk'));
+    titleKey = null; $('title').textContent = base(t.name);
     markCurrent();
     if ('mediaSession' in navigator) navigator.mediaSession.metadata = new MediaMetadata({ title: base(t.name), artist: 'Vumètre LED' });
   } catch (e) {
     console.warn(e);
     const name = e && e.name;
-    log('lecture: échec (' + stage + ') ' + name + ' ' + (e && e.message));
+    log(tr('l_playFail', stage, name, e && e.message));
     if (stage === 'fichier' && name === 'NotAllowedError') {
-      say('Autorisation perdue : appuie sur « Reprendre »', 5000); $('bResume').hidden = false;
+      say(tr('permLost'), 5000); $('bResume').hidden = false;
     } else if (stage === 'lecture' && name === 'NotAllowedError') {
-      say('Lecture bloquée par le navigateur : appuie sur ▶', 5000);
-    } else say('Lecture impossible (' + stage + ', ' + name + ') : ' + t.name, 5000);
+      say(tr('blocked'), 5000);
+    } else say(tr('playFail', stage, name, t.name), 5000);
   }
 }
 function next() {
@@ -643,8 +838,8 @@ $('items').addEventListener('scroll', poke, { passive: true });   // faire défi
 player.onended = next;
 player.onerror = () => {
   const c = player.error && player.error.code;
-  log('lecteur: erreur ' + c + ' ' + (player.error && player.error.message));
-  say('Erreur du lecteur (code ' + c + ')', 5000);
+  log(tr('l_playerErr', c, player.error && player.error.message));
+  say(tr('playerErr', c), 5000);
 };
 player.onplay = () => $('bPlay').textContent = '⏸';
 player.onpause = () => $('bPlay').textContent = '▶';
@@ -704,24 +899,25 @@ lockScreen();
 // ---- Écran de diagnostic (bouton ℹ) : touche le texte pour le copier ----
 function infoText() {
   const dm = matchMedia('(display-mode: fullscreen)').matches ? 'fullscreen'
-    : matchMedia('(display-mode: standalone)').matches ? 'standalone' : 'navigateur';
-  return ['version ' + VERSION,
-    'affichage: ' + dm + ' · sécurisé: ' + isSecureContext,
-    'API dossier: ' + ('showDirectoryPicker' in window) + ' · API fichiers: ' + ('showOpenFilePicker' in window),
-    'service worker: ' + (navigator.serviceWorker && navigator.serviceWorker.controller ? 'actif' : 'aucun'),
-    'audio: ' + (actx ? actx.state : 'non créé') + ' · source: ' + mode,
-    'pistes: ' + tracks.length + ' · index: ' + idx + ' · bibliothèque: ' + (lib ? lib.type : 'aucune'),
-    'lecteur: ready=' + player.readyState + ' paused=' + player.paused + ' erreur=' + (player.error ? player.error.code : '-'),
-    'écran: ' + innerWidth + 'x' + innerHeight + ' @' + devicePixelRatio,
-    'rotation: ' + (rot ? '90° anti-horaire' : 'aucune'),
-    'grille: ' + COLS + '×' + ROWS + ' · cellule ' + pitch.toFixed(1) + ' px · dessin ' + (pitch < SIMPLE_BELOW ? 'simplifié' : 'détaillé') + ' (seuil ' + SIMPLE_BELOW + ' px)',
-    'mise à jour: dernière vérification ' + lastCheck + ' · ' + (updatePending ? 'disponible' : 'à jour'),
+    : matchMedia('(display-mode: standalone)').matches ? 'standalone' : tr('i_browser');
+  const lc = lastCheck ? lastCheck.t + (lastCheck.same ? ' ' + tr('i_unchanged') : '') : tr('i_never');
+  return [tr('i_version', VERSION),
+    tr('i_display', dm, isSecureContext),
+    tr('i_apiDir', 'showDirectoryPicker' in window, 'showOpenFilePicker' in window),
+    tr('i_sw', navigator.serviceWorker && navigator.serviceWorker.controller ? tr('i_swOn') : tr('i_swOff')),
+    tr('i_audio', actx ? actx.state : tr('i_notCreated'), mode),
+    tr('i_tracks', tracks.length, idx, lib ? lib.type : tr('i_none')),
+    tr('i_player', player.readyState, player.paused, player.error ? player.error.code : '-'),
+    tr('i_screen', innerWidth, innerHeight, devicePixelRatio),
+    tr('i_rot', rot ? tr('i_rotOn') : tr('i_rotOff')),
+    tr('i_grid', COLS, ROWS, pitch.toFixed(1), pitch < SIMPLE_BELOW ? tr('i_simple') : tr('i_detail'), SIMPLE_BELOW),
+    tr('i_upd', lc, updatePending ? tr('i_avail') : tr('i_uptodate')),
     navigator.userAgent,
-    '--- journal ---', ...LOG].join('\n');
+    tr('i_journal'), ...LOG].join('\n');
 }
 $('bInfo').onclick = () => { $('info').textContent = infoText(); $('infoBox').hidden = false; };
 $('infoClose').onclick = () => { $('infoBox').hidden = true; };
-$('infoCopy').onclick = () => { try { navigator.clipboard.writeText($('info').textContent); say('Copié'); } catch {} };
+$('infoCopy').onclick = () => { try { navigator.clipboard.writeText($('info').textContent); say(tr('copied')); } catch {} };
 
 // ---- Panneau de réglages (⚙) : s'ouvre et se ferme uniquement sur action (⚙, ou toucher en dehors du panneau) ----
 const settings = $('settings');
@@ -734,7 +930,7 @@ addEventListener('pointerdown', e => {
   if (!settings.hidden && !settings.contains(e.target) && !e.target.closest('#bSet')) closeSettings();
 });
 ['bMic', 'bSys', 'bInfo'].forEach(id => $(id).addEventListener('click', closeSettings));
-log('démarrage v' + VERSION);
+log(tr('l_start', VERSION));
 
 // ---- Détection de mise à jour : compare le code en ligne (script + styles) à celui qui tourne ----
 // Le numéro VERSION n'intervient plus : toute modification du script ou des styles est détectée, même sans changer VERSION.
@@ -742,7 +938,7 @@ log('démarrage v' + VERSION);
 // Vérification au lancement, au retour sur l'app, toutes les 2 min tant qu'elle est visible, et à la reconnexion.
 // Une requête HEAD légère évite de retélécharger la page tant que rien n'a changé.
 const norm = s => s.replace(/\r\n?/g, '\n');
-let seenTag = null, checking = false, lastCheck = 'jamais', updatePending = false;
+let seenTag = null, checking = false, lastCheck = null, updatePending = false;
 async function checkUpdate() {
   if (checking || document.visibilityState !== 'visible' || !SELF_SCRIPT) return;
   checking = true;
@@ -750,16 +946,16 @@ async function checkUpdate() {
     const url = 'index.html?nocache=' + Date.now();
     let tag = null;
     try { const h = await fetch(url, { method: 'HEAD', cache: 'no-store' }); tag = h.headers.get('etag') || h.headers.get('last-modified'); } catch {}
-    if (tag && tag === seenTag) { lastCheck = new Date().toLocaleTimeString() + ' (inchangé)'; return; }
+    if (tag && tag === seenTag) { lastCheck = { t: new Date().toLocaleTimeString(), same: true }; return; }
     const html = await (await fetch(url, { cache: 'no-store' })).text();
     const sc = html.match(/<script>([\s\S]*?)<\/script>/), st = html.match(/<style>([\s\S]*?)<\/style>/);
-    if (!sc || !st) { log('mise à jour: page distante illisible'); return; }
+    if (!sc || !st) { log(tr('l_remoteBad')); return; }
     seenTag = tag;
-    lastCheck = new Date().toLocaleTimeString();
+    lastCheck = { t: new Date().toLocaleTimeString(), same: false };
     if (norm(sc[1]) !== norm(SELF_SCRIPT) || norm(st[1]) !== norm(SELF_STYLE)) {
-      updatePending = true; $('bUpdate').hidden = false; log('mise à jour disponible');
+      updatePending = true; $('bUpdate').hidden = false; log(tr('l_updAvail'));
     }
-  } catch (e) { log('vérification de mise à jour impossible'); }
+  } catch (e) { log(tr('l_updFail')); }
   finally { checking = false; }
 }
 $('bUpdate').onclick = async () => {
@@ -770,6 +966,22 @@ setTimeout(checkUpdate, 3000);
 setInterval(checkUpdate, 120000);
 addEventListener('online', checkUpdate);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkUpdate(); });
+
+// ---- Application de la langue ----
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = tr(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => { el.title = tr(el.dataset.i18nTitle); });
+  document.querySelectorAll('.rst').forEach(el => { el.title = tr('dflt'); });
+  [...palSel.options].forEach((o, i) => { o.textContent = tr('p' + i); });
+  if (titleKey) $('title').textContent = tr(titleKey);
+  renderResume();
+  $('flagImg').src = FLAGS[lang]; $('flagImg').alt = lang.toUpperCase();
+  $('bLang').title = lang === 'fr' ? 'Langue : Français (toucher pour passer en anglais)' : 'Language: English (tap to switch to French)';
+  if (!$('infoBox').hidden) $('info').textContent = infoText();
+}
+$('bLang').onclick = () => { lang = lang === 'fr' ? 'en' : 'fr'; store.set('lang', lang); applyLang(); };
+applyLang();
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(console.warn);
 </script>
