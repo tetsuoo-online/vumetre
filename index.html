@@ -39,7 +39,7 @@
   #infoBox{position:fixed;inset:0;z-index:20;background:#000;display:flex;flex-direction:column}
   #infoBar{display:flex;gap:8px;justify-content:flex-end;padding:8px calc(8px + env(safe-area-inset-right)) 8px 8px}
   #info{flex:1;overflow:auto;margin:0;padding:10px;font:11px/1.4 ui-monospace,monospace;color:#cfc;white-space:pre-wrap;word-break:break-all;user-select:text}
-  #settings{position:fixed;left:0;right:0;bottom:0;z-index:7;display:grid;grid-template-columns:minmax(104px,18%) 1fr 1fr;gap:6px 24px;padding:12px calc(18px + env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));background:#000b;border-top:1px solid #3a3a40}
+  #settings{position:fixed;left:0;right:0;bottom:0;z-index:7;display:grid;grid-template-columns:minmax(104px,18%) 1fr 1fr 64px;gap:6px 24px;padding:12px calc(18px + env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));background:#000b;border-top:1px solid #3a3a40}
   #settings .set{min-width:0}
   #settings .shead{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:#ddd;min-height:32px}
   #settings .sright{display:flex;align-items:center;gap:6px}
@@ -63,6 +63,15 @@
     #settings .sbtns{gap:8px}
     #settings .sbtns button{width:auto;padding:10px 14px;font-size:14px}
   }
+  #bRot{grid-column:4;grid-row:1 / span 2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:8px 4px}
+  #bRot .ric{font-size:30px;line-height:1}
+  #bRot .rtx{display:none;font-size:13px}
+  #bRot.on{border-color:#c9a24a;color:#fff;background:#2a2517}
+  @media (max-width:560px){
+    #bRot{grid-column:1/-1;grid-row:auto;flex-direction:row;padding:10px 14px}
+    #bRot .ric{font-size:20px} #bRot .rtx{display:inline}
+  }
+  #c{transform-origin:50% 50%}
   [hidden]{display:none!important}
 </style>
 </head>
@@ -118,6 +127,7 @@
     <button id="bSys">🖥 Audio</button>
     <button id="bInfo">ℹ Infos</button>
   </div>
+  <button id="bRot" title="Rotation de la grille de 90° (anti-horaire)"><span class="ric">⟲</span><span class="rtx">Rotation</span></button>
 </div>
 <button id="bUpdate" hidden>⟳ Mettre à jour</button>
 <div id="toast"></div>
@@ -137,7 +147,7 @@ const SELF_STYLE = (document.querySelector('style') || {}).textContent || '';
 let COLS = 24, ROWS = 8;   // modifiables depuis le panneau ⚙
 
 const $ = id => document.getElementById(id);
-const VERSION = '2026-11-21-e';
+const VERSION = '2026-11-22-a';
 
 // ---- Journal (affiché par le bouton ℹ) ----
 const LOG = [];
@@ -154,6 +164,7 @@ const store = {
   get: (k, d) => { try { return localStorage.getItem('vu_' + k) ?? d; } catch { return d; } },
   set: (k, v) => { try { localStorage.setItem('vu_' + k, v); } catch {} },
 };
+let rot = store.get('rot', '0') === '1';   // grille tournée de 90° anti-horaire
 
 // ---- Utilitaires UI ----
 let toastT;
@@ -253,8 +264,11 @@ const glowB = document.createElement('canvas'), gb = glowB.getContext('2d');
 let pitch = 1, W = 1, H = 1;
 function resize() {
   const dpr = Math.min(devicePixelRatio || 1, 2);
-  W = Math.min(innerWidth * .97, innerHeight * .9 * COLS / ROWS);
-  pitch = W / COLS; H = pitch * ROWS;
+  // en rotation, la grille occupe visuellement ROWS cellules de large et COLS de haut
+  pitch = rot ? Math.min(innerWidth * .97 / ROWS, innerHeight * .9 / COLS)
+              : Math.min(innerWidth * .97 / COLS, innerHeight * .9 / ROWS);
+  W = pitch * COLS; H = pitch * ROWS;
+  cv.style.transform = rot ? 'rotate(-90deg)' : '';
   cv.style.width = W + 'px'; cv.style.height = H + 'px';
   cv.width = led.width = Math.round(W * dpr);
   cv.height = led.height = Math.round(H * dpr);
@@ -263,6 +277,19 @@ function resize() {
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 addEventListener('resize', resize); resize();
+function pinOrientation() {
+  try {
+    const o = screen.orientation;
+    if (o && o.lock) o.lock(rot ? 'landscape-primary' : 'landscape').then(() => log('orientation verrouillée'), e => log('orientation: ' + e.name));
+  } catch (e) { log('orientation: ' + e); }
+}
+$('bRot').classList.toggle('on', rot);
+$('bRot').onclick = () => {
+  rot = !rot; store.set('rot', rot ? '1' : '0');
+  $('bRot').classList.toggle('on', rot);
+  resize(); pinOrientation();
+};
+if (rot) pinOrientation();
 
 function cell(x, y, row, a) {
   const s = pitch * .78, r = s * .14;
@@ -681,6 +708,7 @@ function infoText() {
     'pistes: ' + tracks.length + ' · index: ' + idx + ' · bibliothèque: ' + (lib ? lib.type : 'aucune'),
     'lecteur: ready=' + player.readyState + ' paused=' + player.paused + ' erreur=' + (player.error ? player.error.code : '-'),
     'écran: ' + innerWidth + 'x' + innerHeight + ' @' + devicePixelRatio,
+    'rotation: ' + (rot ? '90° anti-horaire' : 'aucune'),
     'grille: ' + COLS + '×' + ROWS + ' · cellule ' + pitch.toFixed(1) + ' px · dessin ' + (pitch < SIMPLE_BELOW ? 'simplifié' : 'détaillé') + ' (seuil ' + SIMPLE_BELOW + ' px)',
     'mise à jour: dernière vérification ' + lastCheck + ' · ' + (updatePending ? 'disponible' : 'à jour'),
     navigator.userAgent,
